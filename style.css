@@ -3,7 +3,7 @@
     color-scheme: light dark;
     --color-main: #000;
     --color-background: #fff;
-    --canvas-minwidth: 2700px;
+    --canvas-minwidth: 300px;
 }
 @media (prefers-color-scheme: dark) {
     :root {
@@ -73,6 +73,7 @@ main p {
 }
 main h1 {
 	font-size: 2rem;
+	margin-bottom: 2rem;
 }
 section header {
 	background-image: linear-gradient(#000, #000);
@@ -154,7 +155,8 @@ table tr td:nth-child(3) {
 }
 .table-group {
 /* 	background-color: lightblue; */
-	max-width: 640px;
+	max-width: 960px;
+	margin-bottom: 2rem;
 }
 .table-group table {
 	display: inline-table;
@@ -163,15 +165,6 @@ table tr td:nth-child(3) {
 }
 .table-group table:nth-child(2) {
 	margin-right: 0;
-}
-.table-group table:nth-child(2) tr:last-child td,
-#hospitalised_2 tr:last-child td,
-#quarantined tr:last-child td,
-#confirmed_bag_1 tr td:nth-child(2),
-#confirmed_bag_1 tr th:nth-child(2),
-#confirmed_bag_2 tr td:nth-child(2),
-#confirmed_bag_2 tr th:nth-child(2) {
-	opacity: 1;
 }
 #confirmed_bag_1 tr td:nth-child(2),
 #confirmed_bag_1 tr th:nth-child(2),
@@ -262,7 +255,7 @@ table.wide th span {
 	padding-bottom: 0.2em;
 }
 table.wide th:nth-child(1),
-table.wide th:nth-child(2), {
+table.wide th:nth-child(2) {
 	position: static;
 }
 table.wide th:nth-child(1) span,
@@ -274,7 +267,7 @@ table.wide th:nth-child(2) span {
 	transform: none;
 	padding-left: 0;
 }
-h3 {
+h2, h3 {
 	margin-bottom: 1em;
 	font-size: 1.125rem;
 }
@@ -467,6 +460,22 @@ button {
 	.flag.ZG { background-image: url(flags/zg-dark.png); }
 	.flag.ZH { background-image: url(flags/zh-dark.png); }
 }
+
+/* !risks */
+.risk:after {
+	content: '';
+	display: inline-block;
+	width: 1rem;
+	height: 1rem;
+	border-radius: 0.5rem;
+	background-color: #ccc;
+	margin-left: 0.5rem;
+	margin-top: 1px;
+	vertical-align: top;
+}
+.risk.high:after { background-color: red; }
+.risk.medium:after { background-color: orange; }
+.risk.low:after { background-color: green; }
 
 /* !page-footer */
 #page-footer {
