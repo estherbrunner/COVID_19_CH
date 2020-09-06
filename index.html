@@ -2,7 +2,7 @@
 <html class="no-js" lang="de">
   <head>
     <meta charset="utf-8">
-    <title>Corona Fälle in der Schweiz</title>
+    <title>Corona-Fälle in der Schweiz und im Kanton Zürich</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Visualisierung der Corona-Fälle in der Schweiz, basierend auf den Daten der Kantone, zusammengetragen vom Statistischen Amt des Kanton Zürichs und vielen Helfern.">
     <meta name="keywords" content="Corona,COVID-19,daten,cases,Fälle,Schweiz,Covid,deaths,hospitalisation">
@@ -13,36 +13,35 @@
     <meta property="og:description" content="Visualisierung der Corona-Fälle in der Schweiz, basierend auf den Daten der Kantone, zusammengetragen vom Statistischen Amt des Kanton Zürichs und vielen Helfern.">
     <meta property="og:image" content="https://rsalzer.github.io/COVID_19_CH/preview2.jpg">
     <!--meta property="og:image" content="https://rsalzer.github.io/COVID_19_CH/preview2.png" -->
-    <script src="js/d3.v3.js"></script>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
     <script src="js/Chart.bundle.min.js"></script>
     <script src="js/chartjs-plugin-datalabels.min.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
-    <link rel="stylesheet" type="text/css" href="css/flag-icon.min.css">
-    <link rel="localization" hreflang="fr" href="lang/fr.json" type="application/vnd.oftn.l10n+json"/>
-    <link rel="localization" hreflang="en" href="lang/en.json" type="application/vnd.oftn.l10n+json"/>
-    <link rel="localization" hreflang="it" href="lang/it.json" type="application/vnd.oftn.l10n+json"/>
   </head>
   <body onload="loaded()">
     <a name="top"></a>
     <main>
 		<header id="page-header">
-			<h1>Corona-Fälle in der Schweiz</h1>
-		</header>
+      <h1>Corona-Fälle in der Schweiz und im Kanton Zürich</h1>
+      <p>Daten bereitgstellt durch <a href="https://github.com/openZH/covid_19">das Statistische Amt des Kanton Zürichs</a> und aufbereitet durch <a href="https://twitter.com/rob_salzer">@rob_salzer</a> und <a href="https://twitter.com/esthrbrunnr">@esthrbrunnr</a>.</p>
+    </header>
     <section id="index">
 			<header>
-				<h2>Übersicht</h2>
+				<h2>Schweiz</h2>
 			</header>
       <div id="loadingspinner">Lade Daten...<br/><div class="lds-ring"><div></div><div></div><div></div><div></div></div></div>
       <div id="loaded">
         <article id="latest">
-          <h3>Bestätigte Fälle in den letzten 2 Wochen gemäss Daten der Kantone</h3>
+          <h3>Neue Fälle in den letzten 2 Wochen gemäss Daten der Kantone</h3>
           <div class="table-group">
             <table>
               <thead>
                 <tr>
                   <th>Kanton</th>
                   <th>Datum</th>
-                  <th>Fälle</th>
+                  <th>Neue Fälle</th>
                   <th>pro 100'000</th>
                 </tr>
               </thead>
@@ -60,7 +59,7 @@
                 <tr>
                   <th>Kanton</th>
                   <th>Datum</th>
-                  <th>Fälle</th>
+                  <th>Neue Fälle</th>
                   <th>pro 100'000</th>
                 </tr>
               </thead>
@@ -77,10 +76,69 @@
         </article>
       </div>
     </section>
-    <section id="detail">
+    <section id="overview_zh">
       <header>
-  			<h2>Details</h2>
-	    </header>
+  			<h2>Kanton Zürich</h2>
+      </header>
+    </section>
+    <section>
+      <header>
+        <h2>Nach Bezirk</h2>
+      </header>
+      <article>
+        <h3 id="lastTitle"></h3>
+        <div class="svg-group">
+        <svg id="bezirkssvg" width="350" height="350"></svg>
+        <table id="confirmed">
+          <thead>
+            <tr>
+              <th>Bezirk</th>
+              <th>Neue Fälle</th>
+              <th>pro 100'000</th>
+            </tr>
+          </thead>
+          <tbody id="districtTable"></tbody>
+        </table>
+      </div>
+      </article>
+    </section>
+    <section>
+      <header>
+        <h2>Nach Postleitzahl</h2>
+      </header>
+      <article>
+        <h3 id="lastPLZSubtitle">1 Woche rückwirkend vom </h3>
+        <div class="svg-group">
+          <svg id="plzsvg" width="350" height="350"></svg>
+          <div class="tableFixHead" id="scrolldiv">
+            <table id="plztable" class="tableFixHead">
+              <thead>
+                <tr>
+                  <th>PLZ</th>
+                  <th>Ort</th>
+                  <th>Neue Fälle</th>
+                  <th>pro 100'000</th>
+                </tr>
+              </thead>
+              <tbody id="plzbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+    </section>
+    <section>
+      <header>
+        <h2>Legende</h2>
+      </header>
+      <article>
+        <p>Die Risiko-Ampel orientiert an den Kriterien des BAG für die Einstufung von Gebieten mit erhöhtem Ansteckungsrisiko.</p>
+        <h3>Anzahl Neuinfektionen pro 100'000 Einwohner'innen</h3>
+        <ul class="legend">
+          <li><span class="risk low">&nbsp;</span> <strong>Geringes Ansteckungsrisiko</strong>: 0 bis 60 pro 14 Tage oder 0 bis 30 pro 7 Tage</li>
+          <li><span class="risk medium">&nbsp;</span> <strong>Erhöhtes Ansteckungsrisiko</strong>: 60 bis 120 pro 14 Tage oder 30 bis 60 pro 7 Tage</li>
+          <li><span class="risk high">&nbsp;</span> <strong>Hohes Ansteckungsrisiko</strong>: mehr als 120 pro 14 Tage oder mehr als 60 pro 7 Tage</li>
+        </ul>
+      </article>
     </section>
   </main>
   <footer id="page-footer">

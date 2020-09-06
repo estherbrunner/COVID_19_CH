@@ -109,10 +109,6 @@ section > article:last-child {
 section > * > article:last-child {
 	margin-bottom: 0;
 }
-.table-group table {
-	display: inline-table;
-	margin-right: 2em;
-}
 table {
 	font-family: "IBM Plex Mono", monospace;
 	font-size: 14px;
@@ -146,9 +142,6 @@ table tr th:nth-child(2) {
 	text-align: left;
 	white-space: nowrap;
 }
-table tr td:nth-child(2) {
-	opacity: 0.5;
-}
 table tr th:nth-child(3),
 table tr td:nth-child(3) {
 	text-align: right;
@@ -158,25 +151,19 @@ table tr td:nth-child(3) {
 	max-width: 960px;
 	margin-bottom: 2rem;
 }
-.table-group table {
+.table-group table,
+.svg-group table {
 	display: inline-table;
 	margin-right: 2em;
 	width: calc((100% - 2.3em) / 2);
 }
-.table-group table:nth-child(2) {
+.table-group table:nth-child(2),
+.svg-group table:nth-child(2) {
 	margin-right: 0;
 }
-#confirmed_bag_1 tr td:nth-child(2),
-#confirmed_bag_1 tr th:nth-child(2),
-#confirmed_bag_2 tr td:nth-child(2),
-#confirmed_bag_2 tr th:nth-child(2) {
-	text-align: right;
-}
-.international .ch td{
-	opacity: 1 !important;
-}
-.international tr td {
-	opacity: 0.5 !important;
+.svg-group svg {
+	display: inline-block;
+	vertical-align: top;
 }
 table a:hover {
 	text-decoration: underline;
@@ -195,7 +182,8 @@ table img {
 	.state-indicator {
 	   z-index: 2;
 	}
-	.table-group table {
+	.table-group table,
+	.svg-group table {
 		display: table;
 		width: 100%;
 		margin-right: 0px;
@@ -211,19 +199,6 @@ table img {
 		padding-top: 0px;
 		padding-bottom: 0px;
 	}
-	#international-table-group table:nth-child(2) {
-		margin-top: 1em !important;
-	}
-
-	#international-table-group table:nth-child(2) thead tr th {
-		visibility: visible !important;
-		height: 20px;
-		padding-top: 0.2em;
-		padding-bottom: 0.2em;
-	}
-}
-.BAG {
-  opacity: 0.5;
 }
 .left {
   text-align: left !important;
@@ -278,6 +253,24 @@ h2, h3 {
 #last .group > table:first-child {
 	margin-right: 2em;
 }
+#confirmed, #plztable {
+	float: right;
+}
+#confirmed tr td:nth-child(2),
+#confirmed tr th:nth-child(2) {
+	text-align: right;
+}
+#plztable {
+	float: none;
+	width: auto;
+	display: table;
+	margin-right: 0;
+}
+.tableFixHead          { overflow-y: auto; height: 350px; float: right; }
+.tableFixHead thead th { position: sticky; top: 0; background-color: var(--color-background); border-top-width: 0; }
+.tableFixHead table {
+  font-size: 12px; 
+}
 .canvas-dummy {
   overflow-x: scroll;
 	border: 1px solid rgba(0,0,0,0.4);
@@ -300,7 +293,7 @@ button {
 .chartButtons {
 	overflow-x: scroll;
 	min-width: var(--canvas-minwidth);
-	width: 100%
+	width: 100%;
     clear: both;
 }
 @media (max-width: 660px) {
@@ -321,6 +314,9 @@ button {
 .notes > :last-child {
 	margin-bottom: 0;
 }
+.legend {
+	list-style: none;
+}
 
 .toplink {
 	float: right;
@@ -334,36 +330,6 @@ button {
 .rightButtonDiv {
    max-width: 640px;
    text-align: right;
-}
-.internationalButton {
-    clear: both;
-}
-.internationalButton {
-    margin: 1em 1em 1em 0;
-    padding: 0.2em 0;
-	  color: var(--color-main);
-    background-color: transparent;
-    border: 0;
-	  border-bottom: 2px solid transparent;
-    cursor: pointer;
-    text-decoration: none;
-    text-decoration: capitalize;
-    color: var(--color-main);
-}
-.rightButtonDiv button:last-child {
-  margin: 1em 0em 1em 0;
-}
-.internationalButton:hover {
-	border-bottom: 2px solid #000;
-	border-color: var(--color-main);
-}
-.internationalButton:focus {
-    outline: none;
-}
-.internationalButton.active {
-	cursor: default;
-	border-bottom: 2px solid #000;
-	border-color: var(--color-main);
 }
 
 .chartButton {
@@ -460,6 +426,18 @@ button {
 	.flag.ZG { background-image: url(flags/zg-dark.png); }
 	.flag.ZH { background-image: url(flags/zh-dark.png); }
 }
+.flag._101 { background-image: url(flags/101.png); }
+.flag._102 { background-image: url(flags/102.png); }
+.flag._103 { background-image: url(flags/103.png); }
+.flag._104 { background-image: url(flags/104.png); }
+.flag._105 { background-image: url(flags/105.png); }
+.flag._106 { background-image: url(flags/106.png); }
+.flag._107 { background-image: url(flags/107.png); }
+.flag._108 { background-image: url(flags/108.png); }
+.flag._109 { background-image: url(flags/109.png); }
+.flag._110 { background-image: url(flags/110.png); }
+.flag._111 { background-image: url(flags/111.png); }
+.flag._112 { background-image: url(flags/112.png); }
 
 /* !risks */
 .risk:after {
