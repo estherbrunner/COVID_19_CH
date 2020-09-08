@@ -3,7 +3,7 @@
     color-scheme: light dark;
     --color-main: #000;
     --color-background: #fff;
-    --canvas-minwidth: 300px;
+    --canvas-minwidth: 600px;
 }
 @media (prefers-color-scheme: dark) {
     :root {
@@ -62,7 +62,9 @@ body {
 
 /* !main */
 main {
+	margin: 0 auto;
 	padding: 5vw;
+	max-width: 960px;
 }
 main a {
 	color: inherit;
@@ -146,15 +148,17 @@ table tr th:nth-child(3),
 table tr td:nth-child(3) {
 	text-align: right;
 }
-.table-group {
-/* 	background-color: lightblue; */
-	max-width: 960px;
+.table-group,
+.svg-group {
 	margin-bottom: 2rem;
 }
 .table-group table,
 .svg-group table {
 	display: inline-table;
 	margin-right: 2em;
+	width: calc((100% - 2.3em) / 2);
+}
+.svg-group .tableFixHead {
 	width: calc((100% - 2.3em) / 2);
 }
 .table-group table:nth-child(2),
@@ -164,6 +168,9 @@ table tr td:nth-child(3) {
 .svg-group svg {
 	display: inline-block;
 	vertical-align: top;
+}
+.svg-group table {
+	float: right;
 }
 table a:hover {
 	text-decoration: underline;
@@ -178,7 +185,7 @@ table img {
 
     z-index: 1;
 }
-@media (max-width: 660px) {
+@media (max-width: 750px) {
 	.state-indicator {
 	   z-index: 2;
 	}
@@ -207,9 +214,9 @@ table img {
 /* !wide-table */
 table.wide {
 	width: 100%;
-	max-width: 640px;
+	max-width: 700px;
 }
-@media (max-width: 660px) {
+@media (max-width: 750px) {
 	table.wide {
 		min-width: 100%;
 	}
@@ -253,15 +260,12 @@ h2, h3 {
 #last .group > table:first-child {
 	margin-right: 2em;
 }
-#confirmed {
-	float: right;
-}
 #confirmed tr td:nth-child(2),
 #confirmed tr th:nth-child(2) {
 	text-align: right;
 }
 #plztable {
-	width: auto;
+	width: 100%;
 	display: table;
 	margin-right: 0;
 }
@@ -270,11 +274,16 @@ h2, h3 {
 .tableFixHead table {
   font-size: 12px; 
 }
+#confirmed_1 td:nth-child(2),
+#confirmed_1 td:nth-child(3),
+#confirmed_2 td:nth-child(2),
+#confirmed_2 td:nth-child(3),
+#confirmed td:nth-child(2),
 #plzbody td:nth-child(3) {
 	opacity: 0.5;
 }
 .canvas-dummy {
-  overflow-x: scroll;
+	overflow-x: scroll;
 	border: 1px solid rgba(0,0,0,0.4);
 }
 @media (prefers-color-scheme: dark) {
@@ -283,11 +292,8 @@ h2, h3 {
 	}
 }
 canvas {
-  width: 100%;
+	width: 100%;
 	min-width: var(--canvas-minwidth);
-}
-.bagcanvas {
-  min-width: 800px;
 }
 button {
 	font-family: "IBM Plex Sans", sans-serif;
@@ -298,21 +304,22 @@ button {
 	width: 100%;
     clear: both;
 }
-@media (max-width: 660px) {
+@media (max-width: 750px) {
 	canvas {
-	  width: 100%;
-		min-width: 600px;
+		width: 100%;
+		min-width: 700px;
 	}
 	.chartButtons {
 		overflow-x: scroll;
-		min-width: 600px;
+		min-width: 700px;
 		width: 100%;
 	    clear: both;
 	}
 
-	#confirmed,
-	.tableFixHead {
+	.svg-group table,
+	.svg-group .tableFixHead {
 		float: none;
+		width: 100%;
 	}
 }
 .notes {
@@ -323,47 +330,6 @@ button {
 }
 .legend {
 	list-style: none;
-}
-
-.toplink {
-	float: right;
-	font-size: 1.125rem;
-	border-bottom: 0px;
-	text-decoration: none;
-}
-.toplink:hover {
-	text-decoration: underline;
-}
-.rightButtonDiv {
-   max-width: 640px;
-   text-align: right;
-}
-
-.chartButton {
-    float: right;
-    display: block;
-    margin: 1em 1em 0 0;
-    padding: 0.2em 0;
-	color: var(--color-main);
-    background-color: transparent;
-    border: 0;
-	  border-bottom: 2px solid transparent;
-    cursor: pointer;
-    text-decoration: none;
-    text-decoration: capitalize;
-    color: var(--color-main);
-}
-.chartButton:hover {
-	border-bottom: 2px solid #000;
-	border-color: var(--color-main);
-}
-.chartButton:focus {
-    outline: none;
-}
-.chartButton.active {
-    cursor: default;
-	border-bottom: 2px solid #000;
-	border-color: var(--color-main);
 }
 
 /* !flags */
@@ -464,8 +430,9 @@ button {
 
 /* !page-footer */
 #page-footer {
-	margin: 5vw;
-	padding-top: 5vw;
+	margin: 5vw auto 0;
+	max-width: 960px;
+	padding: 5vw;
 	border-top: 2px solid;
 }
 #page-footer a {

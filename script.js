@@ -92,30 +92,15 @@ const population = {
   "VD": 7.99,
   "VS": 3.44,
   "ZG": 1.27,
-  "ZH": 15.21,
-  101: 0.55,
-  102: 0.32,
-  103: 1.55,
-  104: 0.91,
-  105: 0.97,
-  106: 1.26,
-  107: 1.05,
-  108: 0.61,
-  109: 1.33,
-  110: 1.72,
-  111: 0.93,
-  112: 4.20
+  "ZH": 15.21
 };
-
-const colors2 = ["#a6cee3","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928","#1f78b4"];
-const colors3 = ["#a5df8a", "#ffff99", "#fdbf6f", "#fa9530", "#ff817e", "#e31a1d", "#b15928"];
 
 const cartesianAxesTypes = {
   LINEAR: 'linear',
   LOGARITHMIC: 'logarithmic'
 };
 
-var verbose = true;
+var verbose = false;
 var data = [];
 var dataPerDay = [];
 Chart.defaults.global.defaultFontFamily = "IBM Plex Sans";
@@ -198,7 +183,7 @@ function getPLZ() {
 }
 
 function getDataPerDay() {
-  for (var j = 15; j > 0; j--) {
+  for (var j = 31; j > 0; j--) {
     var date = new Date();
     date.setDate(date.getDate() - j);
     var dateString = date.toISOString();
@@ -235,14 +220,16 @@ function processActualData() {
   var dataPerCanton = dataPerDay[dataPerDay.length - 1].data.map(function(value, i) {
     return {
       'abbreviation': value.canton,
-      'nnew2weeks': dataPerDay.slice(-14).reduce(function(acc, v) { return acc + v.data[i].nchange_conf }, 0),
+      'NewConfCases_7days': dataPerDay.slice(-7).reduce(function(acc, v) { return acc + v.data[i].nchange_conf }, 0),
+      'OldConfCases_7days': dataPerDay.slice(-14, -7).reduce(function(acc, v) { return acc + v.data[i].nchange_conf }, 0),
+      'Population': population[value.canton],
       'date': value.date,
     }
   });
+  var table;
   var firstTable = document.getElementById("confirmed_1");
   var secondTable = document.getElementById("confirmed_2");
   for (var i = 0; i < dataPerCanton.length; i++) {
-    var table;
     if (i < dataPerCanton.length / 2) table = firstTable;
     else table = secondTable;
     var cantonData = dataPerCanton[i];
@@ -257,17 +244,13 @@ function processActualData() {
     td.appendChild(document.createTextNode(formatDate(new Date(cantonData.date))));
     tr.appendChild(td);
     td = document.createElement("td");
-    var text = document.createTextNode(cantonData.nnew2weeks.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'"));
-    td.appendChild(text);
+    td.appendChild(document.createTextNode(formatNumber(cantonData.OldConfCases_7days)));
     tr.appendChild(td);
     td = document.createElement("td");
-    span = document.createElement("span");
-    var casesPerCapita = Math.round(cantonData.nnew2weeks / population[cantonData.abbreviation]);
-    if (casesPerCapita > 120) span.className = 'risk high';
-    else if (casesPerCapita > 60) span.className = 'risk medium';
-    else span.className = 'risk low';
-    span.appendChild(document.createTextNode(casesPerCapita));
-    td.appendChild(span);
+    td.appendChild(document.createTextNode(formatNumber(cantonData.NewConfCases_7days)));
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.innerHTML = getRiskAndChangeCanton(cantonData);
     tr.appendChild(td);
     table.appendChild(tr);
   }
@@ -290,7 +273,7 @@ function barChartAllCH() {
   if (casesPerCapita > 120) paragraph.className = 'risk high';
   else if (casesPerCapita > 60) paragraph.className = 'risk medium';
   else paragraph.className = 'risk low';
-  text = document.createTextNode(nnew2weeks.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'") + ' neue Fälle in den letzten 2 Wochen; ' + casesPerCapita + ' pro 100\'000 Einwohner\'innen');
+  text = document.createTextNode(formatNumber(nnew2weeks) + ' neue Fälle in den letzten 2 Wochen; ' + casesPerCapita + ' pro 100\'000 Einwohner\'innen');
   paragraph.appendChild(text);
   article.appendChild(paragraph);
   var div = document.createElement("div");
@@ -314,7 +297,7 @@ function barChartAllCH() {
   new Chart(canvas.id, {
     type: 'bar',
     options: {
-      responsive: true,
+      responsive: false,
       layout: {
         padding: {
           right: 20,
@@ -331,7 +314,7 @@ function barChartAllCH() {
       tooltips: {
         enabled: false
       },
-      scales: getScales(dateLabels[0].setHours(12, 0, 0)),
+      scales: getScales(dateLabels[1]), // .setHours(12, 0, 0)),
       plugins: {
         datalabels: getDataLabels()
       }
@@ -392,7 +375,7 @@ function barChartCases(place) {
   if (casesPerCapita > 120) paragraph.className = 'risk high';
   else if (casesPerCapita > 60) paragraph.className = 'risk medium';
   else paragraph.className = 'risk low';
-  text = document.createTextNode(nnew2weeks.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'") + ' neue Fälle in den letzten 2 Wochen; ' + casesPerCapita + ' pro 100\'000 Einwohner\'innen');
+  text = document.createTextNode(formatNumber(nnew2weeks) + ' neue Fälle in den letzten 2 Wochen; ' + casesPerCapita + ' pro 100\'000 Einwohner\'innen');
   paragraph.appendChild(text);
   article.appendChild(paragraph);
   var div = document.createElement("div");
@@ -427,7 +410,7 @@ function barChartCases(place) {
           top: 20
         }
       },
-      responsive: true,
+      responsive: false,
       legend: {
         display: false
       },
@@ -437,7 +420,7 @@ function barChartCases(place) {
       tooltips: {
         enabled: false
       },
-      scales: getScales(dateLabels[0].setHours(12, 0, 0)),
+      scales: getScales(dateLabels[1]), // .setHours(12, 0, 0)),
       plugins: {
         datalabels: getDataLabels()
       }
@@ -465,7 +448,7 @@ function barChartCases(place) {
 function getScales(startDate) {
   var endDate = new Date();
   endDate.setDate(endDate.getDate() - 1);
-  endDate.setHours(12, 0, 0);
+  // endDate.setHours(12, 0, 0);
   return {
     xAxes: [{
       type: 'time',
@@ -473,7 +456,7 @@ function getScales(startDate) {
         tooltipFormat: 'DD.MM.YYYY',
         unit: 'day',
         displayFormats: {
-          day: 'DD.MM'
+          day: 'DD.MM.'
         }
       },
       ticks: {
@@ -481,6 +464,7 @@ function getScales(startDate) {
         max: endDate,
       },
       gridLines: {
+        display: false,
         color: inDarkMode() ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'
       }
     }],
@@ -544,16 +528,16 @@ function inDarkMode() {
 
 function lastBezirksData(data) {
   var table = document.getElementById("districtTable");
-  for(var i=101; i<=112; i++) {
-    var filtered = data.filter(function(d) { if(d.DistrictId==i) return d});
-    var last = filtered[filtered.length-1];
+  for(var i = 101; i <= 112; i++) {
+    var filtered = data.filter(function(d) { if (d.DistrictId == i) return d; } );
+    var thisWeek = filtered[filtered.length - 1];
+    var lastWeek = filtered[filtered.length - 2];
 
-    if(i==101) {
-      var week = last.Week;
-      var dateOfWeek = getDateOfISOWeek(week, 2020);
+    if (i == 101) {
+      var dateOfWeek = getDateOfISOWeek(lastWeek.Week, lastWeek.Year);
       var endDay = new Date(dateOfWeek);
-      endDay.setDate(endDay.getDate()+6);
-      var text = `Woche ${week} (${formatDate(dateOfWeek)} - ${formatDate(endDay)})`;
+      endDay.setDate(endDay.getDate() + 13);
+      var text = `Wochen ${lastWeek.Week} und ${thisWeek.Week} (${formatDate(dateOfWeek)} - ${formatDate(endDay)})`;
       var lastTitle = document.getElementById("lastTitle");
       lastTitle.innerHTML = text;
     }
@@ -567,28 +551,14 @@ function lastBezirksData(data) {
     span.appendChild(text);
     td.appendChild(span);
     tr.appendChild(td);
-
     td = document.createElement("td");
-    text = document.createTextNode(last.NewConfCases);
-    td.appendChild(text);
+    td.appendChild(document.createTextNode(lastWeek.NewConfCases));
     tr.appendChild(td);
-
     td = document.createElement("td");
-    span = document.createElement("span");
-    var casesPerCapita = Math.round(last.NewConfCases / population[i]);
-    var svgPolygon = document.getElementById('svg' + i);
-    if (casesPerCapita > 60) {
-      span.className = 'risk high';
-      if (svgPolygon) svgPolygon.setAttribute('fill', 'red');
-    } else if (casesPerCapita > 30) {
-      span.className = 'risk medium';
-      if (svgPolygon) svgPolygon.setAttribute('fill', 'orange');
-    } else {
-      span.className = 'risk low';
-      if (svgPolygon) svgPolygon.setAttribute('fill', 'green');
-    }
-    span.appendChild(document.createTextNode(casesPerCapita));
-    td.appendChild(span);
+    td.appendChild(document.createTextNode(thisWeek.NewConfCases));
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.innerHTML = getRiskAndChangeDistrict(lastWeek, thisWeek, i);
     tr.appendChild(td);
 
     table.appendChild(tr);
@@ -659,19 +629,7 @@ function drawPLZ(csvdata,topodata) {
 };
 
 function getColor(d, i) {
-  // var plz = ""+d.properties.PLZ;
   if(d.properties.Ortschaftsname=="See") return inDarkMode() ? "black" : "white";
-  /* var filtered = plzdata.filter(function(d) { if(d.PLZ==plz) return d});
-  if(filtered.length>0 && filtered[filtered.length-1].NewConfCases_7days != "0-3") {
-    var cases = filtered[filtered.length-1].NewConfCases_7days;
-    if(cases=="4-6") return colors3[0];
-    else if(cases=="7-9") return colors3[1];
-    else if(cases=="10-12") return colors3[2];
-    else if(cases=="13-15") return colors3[3];
-    else if(cases=="16-18") return colors3[4];
-    else if(cases=="19-21") return colors3[5]
-    else return colors3[6]; //>21
-  } */
   return "grey";
 }
 
@@ -704,19 +662,12 @@ function drawPLZTable() {
   var h3 = document.getElementById("lastPLZSubtitle");
   h3.innerHTML = h3.innerHTML + " " + formatDate(new Date(plzdata[plzdata.length-1].Date));
   var filteredPLZData = plzdata.filter(function(d) { if(d.Date==lastDate) return d});
-  // var changes = [];
   for(var i=0; i<filteredPLZData.length; i++) {
     var singlePLZ = filteredPLZData[i];
     var plz = ""+singlePLZ.PLZ;
     var filterForPLZ = plzdata.filter(function(d) { if(d.PLZ==plz) return d});
     var lastWeek = filterForPLZ[filterForPLZ.length-8];
     singlePLZ.OldConfCases_7days = lastWeek.NewConfCases_7days;
-    // singlePLZ.OldDate = lastWeek.Date;
-    /* if (lastWeek.NewConfCases_7days != singlePLZ.NewConfCases_7days) {
-      singlePLZ.oldNewConfCases_7days = yesterday.NewConfCases_7days;
-      singlePLZ.oldDate = yesterday.Date;
-      changes.push(singlePLZ);
-    } */
     var name = plzNames[plz];
     if(name==undefined) name = "";
     var tr = document.createElement("tr");
@@ -724,24 +675,56 @@ function drawPLZTable() {
     if (plz.length > 4) {
       tr.innerHTML = "<td>&nbsp;</td><td>"+plz+"</td><td>"+singlePLZ.OldConfCases_7days+"</td><td>"+singlePLZ.NewConfCases_7days+"</td><td>-</td>";
     } else {
-      var riskAndChange = getRiskAndChange(singlePLZ);
+      var riskAndChange = getRiskAndChangePLZ(singlePLZ);
       tr.innerHTML = "<td>"+plz+"</td><td>"+name+"</td><td>"+singlePLZ.OldConfCases_7days+"</td><td>"+singlePLZ.NewConfCases_7days+"</td><td>"+riskAndChange+"</td>";
     }
     // tr.onclick = clickElement;
     tbody.append(tr);
   }
-  // drawChangesTable(changes);
 }
 
-function getRiskAndChange(singlePLZ) {
-  var population = singlePLZ.Population;
+function getRiskAndChangeCanton(singleCanton) {
+  var symbol = '';
+  var className = '';
+  if (singleCanton.NewConfCases_7days > singleCanton.OldConfCases_7days) symbol = "&#8599;&#xFE0E; ";
+  else if (singleCanton.NewConfCases_7days < singleCanton.OldConfCases_7days) symbol = "&#8600;&#xFE0E; ";
+  var casesPerCapita = Math.round((singleCanton.OldConfCases_7days + singleCanton.NewConfCases_7days) / singleCanton.Population);
+  if (casesPerCapita > 120) className = 'risk high';
+  else if (casesPerCapita > 60) className = 'risk medium';
+  else className = 'risk low';
+  return '<span class="' + className + '">' + symbol + casesPerCapita + '</span>';
+};
+
+function getRiskAndChangeDistrict(lastWeek, thisWeek, districtId) {
+  var lastWeekParsed = parseInt(lastWeek.NewConfCases);
+  var thisWeekParsed = parseInt(thisWeek.NewConfCases);
+  var symbol = '';
+  var className = '';
+  if (thisWeekParsed > lastWeekParsed) symbol = "&#8599;&#xFE0E; ";
+  else if (thisWeekParsed < lastWeekParsed) symbol = "&#8600;&#xFE0E; ";
+  var casesPerCapita = Math.round(100000 * (lastWeekParsed + thisWeekParsed) / parseInt(thisWeek.Population));
+  var svgPolygon = document.getElementById('svg' + districtId);
+  if (casesPerCapita > 120) {
+    className = 'risk high';
+    if (svgPolygon) svgPolygon.setAttribute('fill', 'red');
+  } else if (casesPerCapita > 60) {
+    className = 'risk medium';
+    if (svgPolygon) svgPolygon.setAttribute('fill', 'orange');
+  } else {
+    className = 'risk low';
+    if (svgPolygon) svgPolygon.setAttribute('fill', 'green');
+  }
+  return '<span class="' + className + '">' + symbol + casesPerCapita + '</span>';
+};
+
+function getRiskAndChangePLZ(singlePLZ) {
   var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]);
   var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]);
   var symbol = '';
   var className = '';
   if (thisWeekParsed > lastWeekParsed) symbol = "&#8599;&#xFE0E; ";
   else if (thisWeekParsed < lastWeekParsed) symbol = "&#8600;&#xFE0E; ";
-  var casesPerCapita = Math.round(100000 * (lastWeekParsed + thisWeekParsed) / population);
+  var casesPerCapita = Math.round(100000 * (lastWeekParsed + thisWeekParsed) / singlePLZ.Population);
   var svgPolygon = document.getElementById('svg' + singlePLZ.PLZ);
   if (casesPerCapita > 120) {
     className = 'risk high';
@@ -756,48 +739,7 @@ function getRiskAndChange(singlePLZ) {
   return '<span class="' + className + '">' + symbol + casesPerCapita + '</span>';
 };
 
-/* function drawChangesTable(changes) {
-  var tbody = document.getElementById("plzchangesbody");
-  for(var i=0; i<changes.length; i++) {
-    var change = changes[i];
-    var yesterday = change.oldNewConfCases_7days;
-    var today = change.NewConfCases_7days;
-    if(i==0) {
-      var tday = document.getElementById("tday");
-      var yday = document.getElementById("yday");
-      var dateSplit = change.Date.split("-");
-      var day = parseInt(dateSplit[2]);
-      var month = parseInt(dateSplit[1]);
-      tday.innerHTML = day+"."+month+".";
-      dateSplit = change.oldDate.split("-");
-      day = parseInt(dateSplit[2]);
-      month = parseInt(dateSplit[1]);
-      yday.innerHTML = day+"."+month+".";
-    }
-    var yesterdayParsed = parseInt(yesterday.split("-")[0]);
-    var todayParsed = parseInt(today.split("-")[0]);
-    var symbol = "";
-    if(todayParsed > yesterdayParsed) symbol = "&#8599;&#xFE0E;";
-    else symbol = "&#8600;&#xFE0E;"
-    //console.log("Changes: "+change.PLZ+" - Old: "+yesterday+" New: "+today);
-    var tr = document.createElement("tr");
-    tr.id = "plzchange"+change.PLZ;
-    var population = '';
-    population = change.Population.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "’");;
-    var name = plzNames[change.PLZ];
-    if(name==undefined) name = "";
-    if(change.PLZ.length>4) {
-      tr.innerHTML = "<td colspan=\"2\">"+change.PLZ+"</td><td style=\"text-align: right;\">"+population+"</td><td style=\"text-align: right;\">"+yesterday+"</td><td style=\"text-align: right;\">"+today+"</td><td>"+symbol+"</td>";
-    }
-    else {
-      tr.innerHTML = "<td>"+change.PLZ+"</td><td>"+name+"</td><td>"+population+"</td><td>"+yesterday+"</td><td>"+today+"</td><td>"+symbol+"</td>";
-    }
-    tr.onclick = clickChange;
-    tbody.append(tr);
-  }
-}
-
-var old = null;
+/* var old = null;
 var scroll = true;
 function clickElement(event) {
   var evt = new MouseEvent("mouseover");
@@ -815,6 +757,10 @@ function clickChange(event) {
   d3.select(which).node().dispatchEvent(evt);
   old = which;
 } */
+
+function formatNumber(num) {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+}
 
 function formatDate(date) {
   var dd = date.getDate();
