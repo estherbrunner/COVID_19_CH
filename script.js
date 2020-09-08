@@ -597,9 +597,9 @@ function lastBezirksData(data) {
 
 function drawBezirke(csvdata, topodata) {
   var svg = d3.select("#bezirkssvg"),//.style("background-color", 'red'),
-      width = +svg.attr("width"),
-      height = +svg.attr("height");
-    svg.selectAll("*").remove();
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+  svg.selectAll("*").remove();
   var smaller = width<height ? width : height;
   const projection = d3.geoMercator()
       .center([8.675, 47.43])                // GPS of location to zoom on
@@ -615,11 +615,11 @@ function drawBezirke(csvdata, topodata) {
     .append("path")
     .attr("fill", "grey")
     .attr("id", function(d,i) {
-      var bez_id = ""+d.properties.BEZ_ID;
-      return "svg"+bez_id;
+      var bez_id = "" + d.properties.BEZ_ID;
+      return "svg" + bez_id;
     })
     .attr("d", path)
-    .style("stroke", "white");
+    .style("stroke", inDarkMode() ? "black" : "white");
   
   // Fill the table
   lastBezirksData(csvdata);
@@ -627,9 +627,9 @@ function drawBezirke(csvdata, topodata) {
 
 function drawPLZ(csvdata,topodata) {
   var svg = d3.select("#plzsvg"),//.style("background-color", 'red'),
-      width = +svg.attr("width"),
-      height = +svg.attr("height");
-    svg.selectAll("*").remove();
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+  svg.selectAll("*").remove();
   var smaller = width<height ? width : height;
   const projection = d3.geoMercator()
       .center([8.675, 47.43])                // GPS of location to zoom on
@@ -639,28 +639,28 @@ function drawPLZ(csvdata,topodata) {
 
   // Draw the map
   svg.append("g")
-      .selectAll("path")
-      .data(topodata.features)
-      .enter()
-      .append("path")
-      .attr("d", path)
-      .attr("id", function(d,i) {
-        var plz = ""+d.properties.PLZ;
-        if (plz) return "svg"+plz;
-        else return false;
-      })
-      .style("stroke", "white")
-      .attr('fill', getColor)
-      // .on("mouseover", mouseOverHandlerPLZ)
-      // .on("mouseout", mouseOutHandlerPLZ);
+    .selectAll("path")
+    .data(topodata.features)
+    .enter()
+    .append("path")
+    .attr("d", path)
+    .attr("id", function(d,i) {
+      var plz = "" + d.properties.PLZ;
+      if (plz) return "svg" + plz;
+      else return false;
+    })
+    .style("stroke", inDarkMode() ? "black" : "white")
+    .attr('fill', getColor)
+    // .on("mouseover", mouseOverHandlerPLZ)
+    // .on("mouseout", mouseOutHandlerPLZ);
 
-    // Fill the table
-    drawPLZTable();
+  // Fill the table
+  drawPLZTable();
 };
 
 function getColor(d, i) {
   // var plz = ""+d.properties.PLZ;
-  if(d.properties.Ortschaftsname=="See") return "white";
+  if(d.properties.Ortschaftsname=="See") return inDarkMode() ? "black" : "white";
   /* var filtered = plzdata.filter(function(d) { if(d.PLZ==plz) return d});
   if(filtered.length>0 && filtered[filtered.length-1].NewConfCases_7days != "0-3") {
     var cases = filtered[filtered.length-1].NewConfCases_7days;
@@ -704,52 +704,56 @@ function drawPLZTable() {
   var h3 = document.getElementById("lastPLZSubtitle");
   h3.innerHTML = h3.innerHTML + " " + formatDate(new Date(plzdata[plzdata.length-1].Date));
   var filteredPLZData = plzdata.filter(function(d) { if(d.Date==lastDate) return d});
-  var changes = [];
+  // var changes = [];
   for(var i=0; i<filteredPLZData.length; i++) {
     var singlePLZ = filteredPLZData[i];
     var plz = ""+singlePLZ.PLZ;
     var filterForPLZ = plzdata.filter(function(d) { if(d.PLZ==plz) return d});
-    var yesterday = filterForPLZ[filterForPLZ.length-2];
-    if(yesterday.NewConfCases_7days != singlePLZ.NewConfCases_7days) {
+    var lastWeek = filterForPLZ[filterForPLZ.length-8];
+    singlePLZ.OldConfCases_7days = lastWeek.NewConfCases_7days;
+    // singlePLZ.OldDate = lastWeek.Date;
+    /* if (lastWeek.NewConfCases_7days != singlePLZ.NewConfCases_7days) {
       singlePLZ.oldNewConfCases_7days = yesterday.NewConfCases_7days;
       singlePLZ.oldDate = yesterday.Date;
       changes.push(singlePLZ);
-    }
+    } */
     var name = plzNames[plz];
     if(name==undefined) name = "";
-    var className = '';
-    var cases = `${singlePLZ.NewConfCases_7days}`;
-    var population = singlePLZ.Population;
-    var casesPerCapita = Math.round(100000 * getNewConfCasesNumber(singlePLZ.NewConfCases_7days) / population);
-    var svgPolygon = document.getElementById('svg' + singlePLZ.PLZ);
-    if (casesPerCapita > 60) {
-      className = 'risk high';
-      if (svgPolygon) svgPolygon.setAttribute('fill', 'red');
-    } else if (casesPerCapita > 30) {
-      className = 'risk medium';
-      if (svgPolygon) svgPolygon.setAttribute('fill', 'orange');
-    } else {
-      className = 'risk low';
-      if (svgPolygon) svgPolygon.setAttribute('fill', 'green');
-    }
     var tr = document.createElement("tr");
     tr.id = "plz"+plz;
-    if(plz.length>4) {
-      tr.innerHTML = "<td colspan=\"2\">"+plz+"</td><td style=\"text-align: right;\">"+cases+"</td><td>-</td>";
+    if (plz.length > 4) {
+      tr.innerHTML = "<td>&nbsp;</td><td>"+plz+"</td><td>"+singlePLZ.OldConfCases_7days+"</td><td>"+singlePLZ.NewConfCases_7days+"</td><td>-</td>";
+    } else {
+      var riskAndChange = getRiskAndChange(singlePLZ);
+      tr.innerHTML = "<td>"+plz+"</td><td>"+name+"</td><td>"+singlePLZ.OldConfCases_7days+"</td><td>"+singlePLZ.NewConfCases_7days+"</td><td>"+riskAndChange+"</td>";
     }
-    else {
-      tr.innerHTML = "<td>"+plz+"</td><td>"+name+"</td><td>"+cases+"</td><td><span class=\""+className+"\">"+casesPerCapita+"</span></td>";
-    }
-    tr.onclick = clickElement;
+    // tr.onclick = clickElement;
     tbody.append(tr);
   }
   // drawChangesTable(changes);
 }
 
-function getNewConfCasesNumber(strCases) {
-  var range = strCases.split('-');
-  if (!isNaN(parseInt(range[1]))) return parseInt(range[0]);
-  return 0;
+function getRiskAndChange(singlePLZ) {
+  var population = singlePLZ.Population;
+  var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]);
+  var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]);
+  var symbol = '';
+  var className = '';
+  if (thisWeekParsed > lastWeekParsed) symbol = "&#8599;&#xFE0E; ";
+  else if (thisWeekParsed < lastWeekParsed) symbol = "&#8600;&#xFE0E; ";
+  var casesPerCapita = Math.round(100000 * (lastWeekParsed + thisWeekParsed) / population);
+  var svgPolygon = document.getElementById('svg' + singlePLZ.PLZ);
+  if (casesPerCapita > 120) {
+    className = 'risk high';
+    if (svgPolygon) svgPolygon.setAttribute('fill', 'red');
+  } else if (casesPerCapita > 60) {
+    className = 'risk medium';
+    if (svgPolygon) svgPolygon.setAttribute('fill', 'orange');
+  } else {
+    className = 'risk low';
+    if (svgPolygon) svgPolygon.setAttribute('fill', 'green');
+  }
+  return '<span class="' + className + '">' + symbol + casesPerCapita + '</span>';
 };
 
 /* function drawChangesTable(changes) {
@@ -791,7 +795,7 @@ function getNewConfCasesNumber(strCases) {
     tr.onclick = clickChange;
     tbody.append(tr);
   }
-} */
+}
 
 var old = null;
 var scroll = true;
@@ -810,7 +814,7 @@ function clickChange(event) {
   which = which.replace("change", "");
   d3.select(which).node().dispatchEvent(evt);
   old = which;
-}
+} */
 
 function formatDate(date) {
   var dd = date.getDate();

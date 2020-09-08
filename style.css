@@ -253,7 +253,7 @@ h2, h3 {
 #last .group > table:first-child {
 	margin-right: 2em;
 }
-#confirmed, #plztable {
+#confirmed {
 	float: right;
 }
 #confirmed tr td:nth-child(2),
@@ -261,7 +261,6 @@ h2, h3 {
 	text-align: right;
 }
 #plztable {
-	float: none;
 	width: auto;
 	display: table;
 	margin-right: 0;
@@ -270,6 +269,9 @@ h2, h3 {
 .tableFixHead thead th { position: sticky; top: 0; background-color: var(--color-background); border-top-width: 0; }
 .tableFixHead table {
   font-size: 12px; 
+}
+#plzbody td:nth-child(3) {
+	opacity: 0.5;
 }
 .canvas-dummy {
   overflow-x: scroll;
@@ -306,6 +308,11 @@ button {
 		min-width: 600px;
 		width: 100%;
 	    clear: both;
+	}
+
+	#confirmed,
+	.tableFixHead {
+		float: none;
 	}
 }
 .notes {
