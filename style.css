@@ -24,42 +24,6 @@ body {
 	background-color: var(--color-background);
 }
 
-/* !page-navigation */
-#page-nav {
-	padding-left: 5vw;
-	padding-right: 5vw;
-	padding-top: 1em;
-	max-width: 640px;
-}
-#page-nav ul {
-	list-style: none;
-	display: flex;
-}
-#page-nav li {
-	margin-right: 1em;
-}
-#page-nav li.here a {
-	border-bottom: 2px solid #000;
-	border-color: var(--color-main);
-	cursor: default;
-}
-#page-nav li:nth-child(4) {
-  margin-left: auto;
-}
-#page-nav li:last-child {
-  margin-right: 0;
-}
-#page-nav a {
-	display: block;
-	padding: 0.2em 0;
-	text-decoration: none;
-	color: inherit;
-}
-#page-nav a:hover {
-	border-bottom: 2px solid #000;
-	border-color: var(--color-main);
-}
-
 /* !main */
 main {
 	margin: 0 auto;
@@ -139,15 +103,20 @@ table tr td:nth-child(1),
 table tr th:nth-child(1) {
 	text-align: left;
 }
-table tr td:nth-child(2),
-table tr th:nth-child(2) {
-	text-align: left;
-	white-space: nowrap;
+
+/**
+ * Map
+ */
+ .svg-group .map {
+	 display: inline-block;
+	width: calc((100% - 2.3em) / 2);
 }
-table tr th:nth-child(3),
-table tr td:nth-child(3) {
-	text-align: right;
+
+.map__svg {
+	display: block;
+	margin: 0 auto;
 }
+
 .table-group,
 .svg-group {
 	margin-bottom: 2rem;
@@ -164,10 +133,6 @@ table tr td:nth-child(3) {
 .table-group table:nth-child(2),
 .svg-group table:nth-child(2) {
 	margin-right: 0;
-}
-.svg-group svg {
-	display: inline-block;
-	vertical-align: top;
 }
 .svg-group table {
 	float: right;
@@ -260,10 +225,6 @@ h2, h3 {
 #last .group > table:first-child {
 	margin-right: 2em;
 }
-#confirmed tr td:nth-child(2),
-#confirmed tr th:nth-child(2) {
-	text-align: right;
-}
 #plztable {
 	width: 100%;
 	display: table;
@@ -274,22 +235,23 @@ h2, h3 {
 .tableFixHead table {
   font-size: 12px; 
 }
+#confirmed_1 td:nth-child(1),
+#confirmed_2 td:nth-child(1) {
+	width: 50%;
+}
+#plztable th:nth-child(2),
+#plztable td:nth-child(2) {
+	text-align: left;
+	width: 40%;
+}
 #confirmed_1 td:nth-child(2),
-#confirmed_1 td:nth-child(3),
 #confirmed_2 td:nth-child(2),
-#confirmed_2 td:nth-child(3),
 #confirmed td:nth-child(2),
 #plzbody td:nth-child(3) {
 	opacity: 0.5;
 }
 .canvas-dummy {
 	overflow-x: scroll;
-	border: 1px solid rgba(0,0,0,0.4);
-}
-@media (prefers-color-scheme: dark) {
-	.canvas-dummy {
-		border-color: #333;
-	}
 }
 canvas {
 	width: 100%;
@@ -307,11 +269,11 @@ button {
 @media (max-width: 750px) {
 	canvas {
 		width: 100%;
-		min-width: 700px;
+		min-width: auto;
 	}
 	.chartButtons {
 		overflow-x: scroll;
-		min-width: 700px;
+		min-width: auto;
 		width: 100%;
 	    clear: both;
 	}

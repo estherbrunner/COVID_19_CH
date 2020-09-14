@@ -23,33 +23,33 @@ console.log = function(arguments)
 const cantons = ['AG', 'AI', 'AR', 'BE', 'BL', 'BS', 'FR', 'GE', 'GL', 'GR', 'JU', 'LU', 'NE', 'NW', 'OW', 'SG', 'SH', 'SO', 'SZ', 'TG', 'TI', 'UR', 'VD', 'VS', 'ZG', 'ZH', 'FL'];
 
 const names = {
-  "CH": "Ganze Schweiz",
-  "AG": "Kanton Aargau",
-  "AI": "Kanton Appenzell Innerrhoden",
-  "AR": "Kanton Appenzell Ausserrhoden",
-  "BE": "Kanton Bern",
-  "BL": "Kanton Basel Land",
-  "BS": "Kanton Basel Stadt",
-  "FR": "Kanton Freiburg",
-  "GE": "Kanton Genf",
-  "GL": "Kanton Glarus",
-  "GR": "Kanton Graubünden",
-  "JU": "Kanton Jura",
-  "LU": "Kanton Luzern",
-  "NE": "Kanton Neuenburg",
-  "NW": "Kanton Nidwalden",
-  "OW": "Kanton Obwalden",
-  "SG": "Kanton St. Gallen",
-  "SH": "Kanton Schaffhausen",
-  "SO": "Kanton Solothurn",
-  "SZ": "Kanton Schwyz",
-  "TG": "Kanton Thurgau",
-  "TI": "Kanton Tessin",
-  "UR": "Kanton Uri",
-  "VD": "Kanton Waadt",
-  "VS": "Kanton Wallis",
-  "ZG": "Kanton Zug",
-  "ZH": "Ganzer Kanton Zürich",
+  "CH": "Schweiz",
+  "AG": "Aargau",
+  "AI": "Appenzell Innerrhoden",
+  "AR": "Appenzell Ausserrhoden",
+  "BE": "Bern",
+  "BL": "Basel Land",
+  "BS": "Basel Stadt",
+  "FR": "Freiburg",
+  "GE": "Genf",
+  "GL": "Glarus",
+  "GR": "Graubünden",
+  "JU": "Jura",
+  "LU": "Luzern",
+  "NE": "Neuenburg",
+  "NW": "Nidwalden",
+  "OW": "Obwalden",
+  "SG": "St. Gallen",
+  "SH": "Schaffhausen",
+  "SO": "Solothurn",
+  "SZ": "Schwyz",
+  "TG": "Thurgau",
+  "TI": "Tessin",
+  "UR": "Uri",
+  "VD": "Waadt",
+  "VS": "Wallis",
+  "ZG": "Zug",
+  "ZH": "Zürich",
   "FL": "Fürstentum Liechtenstein",
   101: "Affoltern",
   102: "Andelfingen",
@@ -100,14 +100,15 @@ const cartesianAxesTypes = {
   LOGARITHMIC: 'logarithmic'
 };
 
-var verbose = false;
+var verbose = true;
+var dataSourceCantons = 'BAG';
 var data = [];
 var dataPerDay = [];
 Chart.defaults.global.defaultFontFamily = "IBM Plex Sans";
 document.getElementById("loaded").style.display = 'none';
 
 //console.log("START");
-getCanton(0);
+getCantons();
 
 function getCanton(i) {
   // var url = "https://raw.githubusercontent.com/openZH/covid_19/master/COVID19_Fallzahlen_CH_total_v2.csv";
@@ -116,28 +117,24 @@ function getCanton(i) {
     var url = 'https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_kanton_total_csv_v2/COVID19_Fallzahlen_FL_total.csv';
   }
   d3.csv(url, function(error, csvdata) {
-    if (error!=null) {
-      console.log(error.responseURL+" not found");
+    if (error != null) {
+      console.log(error.responseURL + " not found");
     } else {
-      for(var x=0; x<csvdata.length; x++) {
-        if(!csvdata[x].abbreviation_canton_and_fl) continue;
-        if(csvdata[x].date.split(".").length>1) {
-          var splitDate = csvdata[x].date.split(".");
-          var day = splitDate[0];
-          var month = splitDate[1];
-          var year = splitDate[2];
-          csvdata[x].date = year+"-"+month+"-"+day;
+      for (var x = 0; x < csvdata.length; x++) {
+        if (!csvdata[x].abbreviation_canton_and_fl) continue;
+        var splitDate = csvdata[x].date.split('.');
+        if (splitDate.length > 1) {
+          csvdata[x].date = splitDate[2] + '-' + splitDate[1] + '-' + splitDate[0];
         }
         data.push(csvdata[x]);
       }
       if (verbose) {
-        console.log("added "+csvdata.length+" rows for "+cantons[i]);
+        console.log("added " + csvdata.length + " rows for " + cantons[i]);
       }
     }
-    if(i<cantons.length-1) {
-      getCanton(i+1);
-    }
-    else {
+    if (i < cantons.length - 1) {
+      getCanton(i + 1);
+    } else {
       processData();
     }
   });
@@ -149,66 +146,90 @@ function processData() {
   getDataPerDay();
   // console.log("Process actual");
   processActualData();
-  barChartAllCH();
-  barChartCases('ZH');
+  drawBarChart('CH', dataPerDay, 'index', '#da291c');
+  var canton = 'ZH';
+  var filteredData = dataPerDay.map(function(d) {
+    return d.data.filter(function(dd) { return dd.Canton === canton; })[0];
+  });
+  drawBarChart(canton, filteredData, 'overview_zh', '#0076bd');
   /* for(var i=0; i<cantons.length; i++) {
     barChartCases(cantons[i]);
   } */
-  getBezirke();
-  getPLZ();
+  getDistricts();
+  getZIP();
 }
 
-function getBezirke() {
-  var url = 'https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_bezirke/fallzahlen_kanton_ZH_bezirk.csv';
+var bagData;
+function getCantons() {
+  var url = 'https://raw.githubusercontent.com/rsalzer/COVID_19_BAG/master/data/casesPerCanton.csv';
   d3.queue()
-    .defer(d3.json, "bezirke.json")
+    .defer(d3.json, "kantone.json")
     .defer(d3.csv, url)
     .await(function(error, topo, csvdata) {
-      drawBezirke(csvdata, topo);
+      var projection = d3.geoMercator()
+        .center([8.3, 46.8])
+        .scale(4200);
+      drawMap('#kantonssvg', topo, projection, null, function() {
+        if (dataSourceCantons === 'BAG') {
+          bagData = csvdata;
+          processData();
+        } else {
+          getCanton(0);
+        }
+        // fillTable(csvdata);
+      });
     });
 }
 
-var plzdata = null;
-var plzgeojson = null;
-function getPLZ() {
+function getDistricts() {
+  var url = 'https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_bezirke/fallzahlen_kanton_ZH_bezirk.csv';
+  d3.queue()
+    .defer(d3.json, "https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_bezirke/BezirkeAlleSee_gen_epsg4326_F_KTZH_2020.json")
+    .defer(d3.csv, url)
+    .await(function(error, topo, csvdata) {
+      var projection = d3.geoMercator()
+        .center([8.675, 47.43]) // GPS of location to zoom on
+        .scale(21000);          // This is like the zoom
+      drawMap('#bezirkssvg', topo, projection, 'BEZ_ID', function() {
+        lastBezirksData(csvdata);
+        // fillTable(csvdata);
+      });
+    });
+}
+
+function getZIP() {
   var url = 'https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_plz/fallzahlen_kanton_ZH_plz.csv';
   d3.queue()
     .defer(d3.json, "https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_plz/PLZ_gen_epsg4326_F_KTZH_2020.json")
     .defer(d3.csv, url)
     .await(function(error, topo, csvdata) {
-      plzdata = csvdata;
-      plzgeojson = topo;
-      drawPLZ(csvdata, topo);
+      var projection = d3.geoMercator()
+        .center([8.675, 47.43]) // GPS of location to zoom on
+        .scale(21000);          // This is like the zoom
+      drawMap('#plzsvg', topo, projection, 'PLZ', function() {
+        drawPLZTable(csvdata);
+        // fillTable(csvdata);
+      });
     });
 }
 
 function getDataPerDay() {
-  for (var j = 31; j > 0; j--) {
-    var date = new Date();
-    date.setDate(date.getDate() - j);
-    var dateString = date.toISOString();
-    dateString = dateString.substring(0,10);
-    var singleDayObject = {};
-    singleDayObject.date = dateString;
-    singleDayObject.data = [];
-    for (var i = 0; i < cantons.length - 1; i++) { //without FL
-      var canton = cantons[i];
-      var cantonTotal = getNumConf(canton, date, "ncumul_conf");
-      if (dataPerDay.length) {
-        cantonTotal.nchange_conf = cantonTotal.ncumul_conf - dataPerDay[dataPerDay.length - 1].data[i].ncumul_conf;
-      }
-      singleDayObject.data.push(cantonTotal);
+  for (var j = 30; j > 0; j--) {
+    var dateString = getDateString(new Date(), -j);
+    var singleDayObject = {
+      Date: dateString,
+      data: []
+    };
+    for (var i = 0; i < cantons.length - 1; i++) { // without FL
+      singleDayObject.data.push(getSingleDayObject(cantons[i], dateString));
     }
-    var total = singleDayObject.data.reduce(function(acc, val) { return acc + val.ncumul_conf; }, 0);
-    singleDayObject.total = total;
-    if (dataPerDay.length) {
-      var change = total - dataPerDay[dataPerDay.length - 1].total;
-      singleDayObject.change = change;
+    singleDayObject.TotalConfCases = singleDayObject.data.reduce(function(acc, val) { return acc + val.TotalConfCases; }, 0);
+    singleDayObject.NewConfCases_1day = singleDayObject.data.reduce(function(acc, val) { return acc + val.NewConfCases_1day; }, 0);
+    singleDayObject.NewConfCases_7days = singleDayObject.data.reduce(function(acc, val) { return acc + val.NewConfCases_7days; }, 0);
+    if (singleDayObject.data[0].NewConfCases_7dayAverage) {
+      singleDayObject.NewConfCases_7dayAverage = singleDayObject.data.reduce(function(acc, val) { return acc + val.NewConfCases_7dayAverage; }, 0);
     }
     dataPerDay.push(singleDayObject);
-    if (verbose) {
-      console.log(dateString + ': ' + total);
-    }
   }
   // console.log("End preping CH cases");
   if (verbose) {
@@ -219,11 +240,11 @@ function getDataPerDay() {
 function processActualData() {
   var dataPerCanton = dataPerDay[dataPerDay.length - 1].data.map(function(value, i) {
     return {
-      'abbreviation': value.canton,
-      'NewConfCases_7days': dataPerDay.slice(-7).reduce(function(acc, v) { return acc + v.data[i].nchange_conf }, 0),
-      'OldConfCases_7days': dataPerDay.slice(-14, -7).reduce(function(acc, v) { return acc + v.data[i].nchange_conf }, 0),
-      'Population': population[value.canton],
-      'date': value.date,
+      'Canton': value.Canton,
+      'NewConfCases_7days': value.NewConfCases_7days,
+      'OldConfCases_7days': dataPerDay[dataPerDay.length - 8].data[i].NewConfCases_7days,
+      'Population': population[value.Canton],
+      'Date': value.Date,
     }
   });
   var table;
@@ -236,13 +257,13 @@ function processActualData() {
     var tr = document.createElement("tr");
     var td = document.createElement("td");
     var span = document.createElement("span");
-    span.className = "flag " + cantonData.abbreviation;
-    span.appendChild(document.createTextNode(cantonData.abbreviation));
+    span.className = "flag " + cantonData.Canton;
+    span.appendChild(document.createTextNode(names[cantonData.Canton]));
     td.appendChild(span);
     tr.appendChild(td);
-    td = document.createElement("td");
-    td.appendChild(document.createTextNode(formatDate(new Date(cantonData.date))));
-    tr.appendChild(td);
+    /* td = document.createElement("td");
+    td.appendChild(document.createTextNode(formatDate(new Date(cantonData.Date))));
+    tr.appendChild(td); */
     td = document.createElement("td");
     td.appendChild(document.createTextNode(formatNumber(cantonData.OldConfCases_7days)));
     tr.appendChild(td);
@@ -256,133 +277,85 @@ function processActualData() {
   }
 }
 
-function barChartAllCH() {
-  var place = "CH";
-  var section = document.getElementById("index");
-  var article = document.createElement("article");
-  article.id="detail_"+place;
-  var h3 = document.createElement("h3");
-  h3.className = "flag "+place;
-  var text = document.createTextNode(_(names[place]));
-  h3.appendChild(text);
-  article.appendChild(h3);
-  var paragraph = document.createElement("p");
-  var nnew2weeks = dataPerDay.slice(-14).reduce(function(accumulator, value) { return accumulator + value.change }, 0);
-  // var nnew1week = dataPerDay.slice(-7).reduce(function(accumulator, value) { return accumulator + value.change }, 0);
-  var casesPerCapita = Math.round(nnew2weeks / population[place]);
-  if (casesPerCapita > 120) paragraph.className = 'risk high';
-  else if (casesPerCapita > 60) paragraph.className = 'risk medium';
-  else paragraph.className = 'risk low';
-  text = document.createTextNode(formatNumber(nnew2weeks) + ' neue Fälle in den letzten 2 Wochen; ' + casesPerCapita + ' pro 100\'000 Einwohner\'innen');
-  paragraph.appendChild(text);
-  article.appendChild(paragraph);
-  var div = document.createElement("div");
-  div.className = "canvas-dummy";
-  div.id = "container_" + place;
-  var canvas = document.createElement("canvas");
-  canvas.id = place;
-  canvas.height = 250;
-  div.appendChild(canvas);
-  article.appendChild(div);
-  section.appendChild(article);
-  var dateLabels = dataPerDay.map(function(d) {
-    var dateSplit = d.date.split("-");
-    var day = parseInt(dateSplit[2]);
-    var month = parseInt(dateSplit[1]) - 1;
-    var year = parseInt(dateSplit[0]);
-    var date = new Date(year, month, day, 0, 0);
-    return date;
-  });
-  var cases = dataPerDay.map(function(d) {return d.change});
-  new Chart(canvas.id, {
-    type: 'bar',
-    options: {
-      responsive: false,
-      layout: {
-        padding: {
-          right: 20,
-          left: 20,
-          top: 20
-        }
-      },
-      legend: {
-        display: false
-      },
-      title: {
-        display: false
-      },
-      tooltips: {
-        enabled: false
-      },
-      scales: getScales(dateLabels[1]), // .setHours(12, 0, 0)),
-      plugins: {
-        datalabels: getDataLabels()
-      }
-    },
-    data: {
-      labels: dateLabels,
-      datasets: [
-        {
-          data: cases,
-          fill: false,
-          cubicInterpolationMode: 'monotone',
-          spanGaps: true,
-          borderColor: '#DA291C',
-          backgroundColor: '#DA291C',
-          datalabels: {
-            align: 'end',
-            anchor: 'end'
-          }
-        }
-      ]
-    }
-  });
-}
-
-function getNumConf(canton, date, variable) {
-  var dateString = date.toISOString();
-  dateString = dateString.substring(0,10);
-  var filteredData = data.filter(function(d) { if(d.abbreviation_canton_and_fl==canton && d.date==dateString && d[variable]!="") return d});
-  if(filteredData.length>0) {
-    if(filteredData.length>1) console.log("More than 1 line for "+canton+" date: "+dateString);
-    var obj = {
-      canton: canton,
-      date: dateString,
-    };
-    obj[variable] = parseInt(filteredData[filteredData.length-1][variable]);
-    return obj;
+/**
+ * Get single day object
+ * 
+ * @param {string} canton - 2 letter identifier of canton
+ * @param {string} dateString - ISO formatted date string
+ * @returns {object} - single day object
+ */
+function getSingleDayObject(canton, dateString) {
+  var today = getTotalConfCases(canton, dateString);
+  var yesterday = getTotalConfCases(canton, getDateString(new Date(dateString), -1));
+  var minus4days = getTotalConfCases(canton, getDateString(new Date(dateString), -4));
+  var plus3days = getTotalConfCases(canton, getDateString(new Date(dateString), +3));
+  var minus7days = getTotalConfCases(canton, getDateString(new Date(dateString), -7));
+  var singleDayObject = {
+    Canton: canton,
+    Date: dateString
+  };
+  if (today) {
+    singleDayObject.TotalConfCases = today;
+    if (yesterday) singleDayObject.NewConfCases_1day = today - yesterday;
+    if (minus7days) singleDayObject.NewConfCases_7days = today - minus7days;
+    if (minus4days && plus3days) singleDayObject.NewConfCases_7dayAverage = (plus3days - minus4days) / 7;
   }
-  var dayBefore = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() - 1));
-  return getNumConf(canton, dayBefore, variable);
+  return singleDayObject;
 }
 
-function barChartCases(place) {
-  var filteredData = dataPerDay.map(function(d) {
-    return d.data.filter(function(dd) { return dd.canton === place; })[0];
-  });
-  var section = document.getElementById("overview_zh");
+/**
+ * Get cumulated number of confirmed cases
+ * 
+ * @param {string} canton - 2 letter identifier of canton
+ * @param {string} dateString - ISO formatted date string
+ * @returns {number} - total number of confirmed cases
+ */
+function getTotalConfCases(canton, dateString) {
+  var filteredData;
+  var variable;
+  if (dataSourceCantons === 'BAG') {
+    variable = canton;
+    filteredData = bagData.filter(function(d) {
+      if (d.date == dateString && d[canton] != '') return d;
+    });
+  } else {
+    variable = 'ncumul_conf';
+    filteredData = data.filter(function(d) {
+      if (d.abbreviation_canton_and_fl == canton && d.date == dateString && d[variable] != '') return d;
+    });
+  }
+  if (filteredData.length > 0) {
+    return parseInt(filteredData[filteredData.length - 1][variable]);
+  }
+  // else try day before
+  return null; // getTotalConfCases(canton, getDateString(new Date(dateString), -1));
+}
+
+/**
+ * Draw bar chart
+ * 
+ * @param {string} place - 'CH' or canton abbreviation
+ * @param {object} filteredData - prefiltered data for place and date range
+ * @param {string} sectionId - section to render chart to
+ * @param {string} color - color of bars
+ */
+function drawBarChart(place, filteredData, sectionId, color) {
+  var section = document.getElementById(sectionId);
   var article = document.createElement("article");
-  article.id="detail_"+place;
   var h3 = document.createElement("h3");
-  h3.className = "flag "+place;
-  var text = document.createTextNode(_(names[place]));
+  var nnew2weeks = filteredData[filteredData.length - 1].NewConfCases_7days + filteredData[filteredData.length - 8].NewConfCases_7days;
+  var casesPerCapita = Math.round(nnew2weeks / population[place]);
+  if (casesPerCapita > 120) h3.className = 'risk high';
+  else if (casesPerCapita > 60) h3.className = 'risk medium';
+  else h3.className = 'risk low';
+  text = document.createTextNode(formatNumber(nnew2weeks) + ' neue Fälle in den letzten 2 Wochen; ' + casesPerCapita + ' pro 100\'000 Einwohner\'innen');
   h3.appendChild(text);
   article.appendChild(h3);
-  var paragraph = document.createElement("p");
-  var nnew2weeks = filteredData.slice(-14).reduce(function(accumulator, value) { return accumulator + value.nchange_conf }, 0);
-  // var nnew1week = dataPerDay.slice(-7).reduce(function(accumulator, value) { return accumulator + value.nchange_conf }, 0);
-  var casesPerCapita = Math.round(nnew2weeks / population[place]);
-  if (casesPerCapita > 120) paragraph.className = 'risk high';
-  else if (casesPerCapita > 60) paragraph.className = 'risk medium';
-  else paragraph.className = 'risk low';
-  text = document.createTextNode(formatNumber(nnew2weeks) + ' neue Fälle in den letzten 2 Wochen; ' + casesPerCapita + ' pro 100\'000 Einwohner\'innen');
-  paragraph.appendChild(text);
-  article.appendChild(paragraph);
   var div = document.createElement("div");
   div.className = "canvas-dummy";
   div.id = "container_"+place;
   var canvas = document.createElement("canvas");
-  if (filteredData.length==0) {
+  if (filteredData.length == 0) {
     div.appendChild(document.createTextNode(_("Keine Daten")));
   } else {
     canvas.id = place;
@@ -391,21 +364,14 @@ function barChartCases(place) {
   }
   article.appendChild(div);
   section.appendChild(article);
-  var dateLabels = dataPerDay.map(function(d) {
-    var dateSplit = d.date.split("-");
-    var day = parseInt(dateSplit[2]);
-    var month = parseInt(dateSplit[1]) - 1;
-    var year = parseInt(dateSplit[0]);
-    var date = new Date(year, month, day, 0, 0);
-    return date;
-  });
-  var cases = filteredData.map(function(d) { if (d.nchange_conf) return d.nchange_conf });
+  var dateLabels = filteredData.map(function(d) { return d.Date });
+  var cases = filteredData.map(function(d) { return d.NewConfCases_1day });
+  var averages = filteredData.map(function(d) { return Math.round(d.NewConfCases_7dayAverage) });
   new Chart(canvas.id, {
     type: 'bar',
     options: {
       layout: {
         padding: {
-          right: 20,
           left: 20,
           top: 20
         }
@@ -418,9 +384,9 @@ function barChartCases(place) {
         display: false
       },
       tooltips: {
-        enabled: false
+        enabled: true
       },
-      scales: getScales(dateLabels[1]), // .setHours(12, 0, 0)),
+      scales: getScales(dateLabels), // .setHours(12, 0, 0)),
       plugins: {
         datalabels: getDataLabels()
       }
@@ -430,14 +396,26 @@ function barChartCases(place) {
       datasets: [
         {
           data: cases,
+          order: 1,
           fill: false,
           cubicInterpolationMode: 'monotone',
           spanGaps: true,
-          borderColor: '#0076bd',
-          backgroundColor: '#0076bd',
+          borderColor: color,
+          backgroundColor: color,
           datalabels: {
             align: 'end',
             anchor: 'end'
+          }
+        },
+        {
+          data: averages,
+          order: 0,
+          type: 'line',
+          pointRadius: 0,
+          borderColor: inDarkMode() ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+          borderWidth: 3,
+          datalabels: {
+            display: false
           }
         }
       ]
@@ -445,13 +423,11 @@ function barChartCases(place) {
   });
 }
 
-function getScales(startDate) {
-  var endDate = new Date();
-  endDate.setDate(endDate.getDate() - 1);
-  // endDate.setHours(12, 0, 0);
+function getScales(dateLabels) {
   return {
     xAxes: [{
       type: 'time',
+      offset: true,
       time: {
         tooltipFormat: 'DD.MM.YYYY',
         unit: 'day',
@@ -459,12 +435,9 @@ function getScales(startDate) {
           day: 'DD.MM.'
         }
       },
-      ticks: {
-        min: startDate,
-        max: endDate,
-      },
       gridLines: {
         display: false,
+        offsetGridLines: true,
         color: inDarkMode() ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'
       }
     }],
@@ -488,10 +461,10 @@ function getDataLabels() {
     color: inDarkMode() ? '#ccc' : 'black',
     font: {
       weight: 'bold',
-    },
+    } /* ,
     formatter: function(value) {
       return value > 0 ? "+" + value : value;
-    }
+    } */
   };
 }
 
@@ -526,9 +499,48 @@ function inDarkMode() {
   return false;
 }
 
+/**
+ * Draw SVG map
+ * 
+ * @param {string} container - selector of map container
+ * @param {object} topoData - geoJSON to draw
+ * @param {object} projection - d3 projection
+ * @param {string} idAttribute - property to be used as identifier
+ * @param {function} callback - function to call after map is drawn
+ */
+function drawMap(container, topoData, projection, idAttribute, callback) {
+  var svg = d3.select(container);
+  var width = parseInt(svg.style('width'));
+  var height = parseInt(svg.style('height'));
+  svg.selectAll('*').remove();
+  projection.translate([width / 2, height / 2]);
+  const path = d3.geoPath().projection(projection);
+
+  // Draw the map
+  svg.append('g')
+    .selectAll('path')
+    .data(topoData.features)
+    .enter()
+    .append('path')
+    .attr('d', path)
+    .attr('id', function(d) {
+      var id = idAttribute ? d.properties[idAttribute] : d.id;
+      if (id) return 'svg' + id;
+      return false;
+    })
+    .style('stroke', inDarkMode() ? 'black' : 'white')
+    .attr('fill', function(d) {
+      var isLake = (d.properties.Ortschaftsname == 'See' || d.properties.BEZ_N == 'See');
+      if (isLake) return inDarkMode() ? 'black' : 'white';
+      return 'grey';
+    });
+
+  if (typeof callback === 'function') callback();
+}
+
 function lastBezirksData(data) {
   var table = document.getElementById("districtTable");
-  for(var i = 101; i <= 112; i++) {
+  for (var i = 101; i <= 112; i++) {
     var filtered = data.filter(function(d) { if (d.DistrictId == i) return d; } );
     var thisWeek = filtered[filtered.length - 1];
     var lastWeek = filtered[filtered.length - 2];
@@ -537,7 +549,7 @@ function lastBezirksData(data) {
       var dateOfWeek = getDateOfISOWeek(lastWeek.Week, lastWeek.Year);
       var endDay = new Date(dateOfWeek);
       endDay.setDate(endDay.getDate() + 13);
-      var text = `Wochen ${lastWeek.Week} und ${thisWeek.Week} (${formatDate(dateOfWeek)} - ${formatDate(endDay)})`;
+      var text = `Wochen ${lastWeek.Week} und ${thisWeek.Week} (${formatDate(dateOfWeek)} – ${formatDate(endDay)})`;
       var lastTitle = document.getElementById("lastTitle");
       lastTitle.innerHTML = text;
     }
@@ -565,113 +577,26 @@ function lastBezirksData(data) {
   }
 }
 
-function drawBezirke(csvdata, topodata) {
-  var svg = d3.select("#bezirkssvg"),//.style("background-color", 'red'),
-    width = +svg.attr("width"),
-    height = +svg.attr("height");
-  svg.selectAll("*").remove();
-  var smaller = width<height ? width : height;
-  const projection = d3.geoMercator()
-      .center([8.675, 47.43])                // GPS of location to zoom on
-      .scale(40000*(smaller/600))            // This is like the zoom
-      .translate([ width/2, height/2 ])
-  const path = d3.geoPath().projection(projection);
-
-  // Draw the map
-  svg.append("g")
-    .selectAll("path")
-    .data(topodata.features)
-    .enter()
-    .append("path")
-    .attr("fill", "grey")
-    .attr("id", function(d,i) {
-      var bez_id = "" + d.properties.BEZ_ID;
-      return "svg" + bez_id;
-    })
-    .attr("d", path)
-    .style("stroke", inDarkMode() ? "black" : "white");
-  
-  // Fill the table
-  lastBezirksData(csvdata);
-};
-
-function drawPLZ(csvdata,topodata) {
-  var svg = d3.select("#plzsvg"),//.style("background-color", 'red'),
-    width = +svg.attr("width"),
-    height = +svg.attr("height");
-  svg.selectAll("*").remove();
-  var smaller = width<height ? width : height;
-  const projection = d3.geoMercator()
-      .center([8.675, 47.43])                // GPS of location to zoom on
-      .scale(40000*(smaller/600))            // This is like the zoom
-      .translate([ width/2, height/2 ])
-  const path = d3.geoPath().projection(projection);
-
-  // Draw the map
-  svg.append("g")
-    .selectAll("path")
-    .data(topodata.features)
-    .enter()
-    .append("path")
-    .attr("d", path)
-    .attr("id", function(d,i) {
-      var plz = "" + d.properties.PLZ;
-      if (plz) return "svg" + plz;
-      else return false;
-    })
-    .style("stroke", inDarkMode() ? "black" : "white")
-    .attr('fill', getColor)
-    // .on("mouseover", mouseOverHandlerPLZ)
-    // .on("mouseout", mouseOutHandlerPLZ);
-
-  // Fill the table
-  drawPLZTable();
-};
-
-function getColor(d, i) {
-  if(d.properties.Ortschaftsname=="See") return inDarkMode() ? "black" : "white";
-  return "grey";
-}
-
-/* function mouseOverHandlerPLZ(d, i) {
-  if(old) {
-    var evt2 = new MouseEvent("mouseout");
-    d3.select(old).node().dispatchEvent(evt2);
-    old = null;
-  }
-  if(d.properties.Ortschaftsname=="See") return;
-  d3.select(this).attr("fill", "#5592ED");
-  var tr = document.getElementById("plz"+d.properties.PLZ);
-  var div = document.getElementById("scrolldiv");
-  tr.className = "active";
-  if(scroll) div.scrollTop = tr.offsetTop-175;
-  if(document.getElementById("plzchange"+d.properties.PLZ)) document.getElementById("plzchange"+d.properties.PLZ).className = "active";
-}
-
-function mouseOutHandlerPLZ(d, i) {
-  d3.select(this).attr("fill", getColor);
-  document.getElementById("plz"+d.properties.PLZ).className = "";
-  if(document.getElementById("plzchange"+d.properties.PLZ)) document.getElementById("plzchange"+d.properties.PLZ).className = "";
-} */
-
 var whichclicked = "";
-function drawPLZTable() {
+function drawPLZTable(plzdata) {
   var tbody = document.getElementById("plzbody");
-
-  var lastDate = plzdata[plzdata.length-1].Date;
+  var lastDate = plzdata[plzdata.length - 1].Date;
+  var endDay = new Date(lastDate);
+  var startDay = new Date(lastDate);
+  startDay.setDate(startDay.getDate() - 13);
   var h3 = document.getElementById("lastPLZSubtitle");
-  h3.innerHTML = h3.innerHTML + " " + formatDate(new Date(plzdata[plzdata.length-1].Date));
-  var filteredPLZData = plzdata.filter(function(d) { if(d.Date==lastDate) return d});
-  for(var i=0; i<filteredPLZData.length; i++) {
+  h3.innerHTML = h3.innerHTML + ' (' + formatDate(startDay) + ' – ' + formatDate(endDay) + ')';
+  var filteredPLZData = plzdata.filter(function(d) { if(d.Date == lastDate) return d});
+  for (var i=0; i<filteredPLZData.length; i++) {
     var singlePLZ = filteredPLZData[i];
     var plz = ""+singlePLZ.PLZ;
-    var filterForPLZ = plzdata.filter(function(d) { if(d.PLZ==plz) return d});
-    var lastWeek = filterForPLZ[filterForPLZ.length-8];
+    var filterForPLZ = plzdata.filter(function(d) { if(d.PLZ == plz) return d});
+    var lastWeek = filterForPLZ[filterForPLZ.length - 8];
     singlePLZ.OldConfCases_7days = lastWeek.NewConfCases_7days;
     var name = plzNames[plz];
-    if(name==undefined) name = "";
+    if(name == undefined) name = "";
     var tr = document.createElement("tr");
-    tr.id = "plz"+plz;
+    tr.id = "plz" + plz;
     if (plz.length > 4) {
       tr.innerHTML = "<td>&nbsp;</td><td>"+plz+"</td><td>"+singlePLZ.OldConfCases_7days+"</td><td>"+singlePLZ.NewConfCases_7days+"</td><td>-</td>";
     } else {
@@ -689,9 +614,17 @@ function getRiskAndChangeCanton(singleCanton) {
   if (singleCanton.NewConfCases_7days > singleCanton.OldConfCases_7days) symbol = "&#8599;&#xFE0E; ";
   else if (singleCanton.NewConfCases_7days < singleCanton.OldConfCases_7days) symbol = "&#8600;&#xFE0E; ";
   var casesPerCapita = Math.round((singleCanton.OldConfCases_7days + singleCanton.NewConfCases_7days) / singleCanton.Population);
-  if (casesPerCapita > 120) className = 'risk high';
-  else if (casesPerCapita > 60) className = 'risk medium';
-  else className = 'risk low';
+  var svgPolygon = document.getElementById('svg' + singleCanton.Canton);
+  if (casesPerCapita > 120) {
+    className = 'risk high';
+    if (svgPolygon) svgPolygon.setAttribute('fill', 'red');
+  } else if (casesPerCapita > 60) {
+    className = 'risk medium';
+    if (svgPolygon) svgPolygon.setAttribute('fill', 'orange');
+  } else {
+    className = 'risk low';
+    if (svgPolygon) svgPolygon.setAttribute('fill', 'green');
+  }
   return '<span class="' + className + '">' + symbol + casesPerCapita + '</span>';
 };
 
@@ -758,16 +691,40 @@ function clickChange(event) {
   old = which;
 } */
 
+/**
+ * Get human readable number string in format XX'XXX
+ * 
+ * @param {number} num
+ */
 function formatNumber(num) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
 }
 
+/**
+ * Get human readable date string in format DD.MM.
+ * 
+ * @param {Date} date - date object
+ * @returns {string} - date string
+ */
 function formatDate(date) {
   var dd = date.getDate();
-  var mm = date.getMonth()+1;
-  if (dd<10) dd='0'+dd;
-  if (mm<10) mm='0'+mm;
-  return dd + "." + mm + ".";
+  var mm = date.getMonth() + 1;
+  if (dd < 10) dd = '0' + dd;
+  if (mm < 10) mm = '0' + mm;
+  return dd + '.' + mm + '.';
+}
+
+/**
+ * Get ISO 8601 date string from date object
+ * 
+ * @param {Date} date - date object
+ * @param {number} offset - offset in days
+ */
+function getDateString(date, offset = 0) {
+  if (offset) {
+    var date = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + offset));
+  }
+  return date.toISOString().substring(0, 10);
 }
 
 function getDateOfISOWeek(w, y) {
