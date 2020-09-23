@@ -29,65 +29,52 @@
     </header>
     <section id="index">
 			<header>
-				<h2 class="flag CH">Schweiz</h2>
+				<h2 class="flag flag--CH">Schweiz</h2>
 			</header>
       <div id="loadingspinner">Lade Daten...<br/><div class="lds-ring"><div></div><div></div><div></div><div></div></div></div>
+      <div id="loaded"></div>
     </section>
-    <section>
+    <section id="cantons">
       <header>
         <h2>Nach Kanton</h2>
       </header>
-      <div id="loaded">
-        <article id="latest">
-          <h3>Letzte 2 Wochen gemäss Daten des BAG</h3>
-          <div class="map">
-            <svg class="map__svg" id="kantonssvg" width="330" height="210"></svg>
-          </div>
-          <div class="table-group">
-            <table>
-              <thead>
-                <tr>
-                  <th>Kanton</th>
-                  <th colspan="2">Neue Fälle</th>
-                  <th>pro 100'000</th>
-                </tr>
-              </thead>
-              <tbody id="confirmed_1">
-                <!--tr>
-                  <td><a class="flag flag-icon-ch flag-icon-squared" href="#detail_SO">SO</a></td>
-                  <td>2020-03-26</td>
-                  <td>141</td>
-                  <td><a href="https://corona.so.ch/">↗</a></td>
-                </tr -->
-              </tbody>
-            </table>
-            <table>
-              <thead>
-                <tr>
-                  <th>Kanton</th>
-                  <th colspan="2">Neue Fälle</th>
-                  <th>pro 100'000</th>
-                </tr>
-              </thead>
-              <tbody id="confirmed_2">
-                <!-- tr>
-                  <td><a class="flag so" href="#detail_SO">SO</a></td>
-                  <td>2020-03-26</td>
-                  <td>141</td>
-                  <td><a href="https://corona.so.ch/">↗</a></td>
-                </tr -->
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </div>
+      <article id="latest">
+        <h3>Letzte 2 Wochen gemäss Daten des BAG</h3>
+        <div class="map">
+          <svg class="map__svg" id="map_cantons" width="960" height="600"></svg>
+        </div>
+        <div class="table-group">
+          <table>
+            <thead>
+              <tr>
+                <th>Kanton</th>
+                <th colspan="2">Neue Fälle</th>
+                <th>pro 100'000</th>
+              </tr>
+            </thead>
+            <tbody id="confirmed_1">
+            </tbody>
+          </table>
+          <table>
+            <thead>
+              <tr>
+                <th>Kanton</th>
+                <th colspan="2">Neue Fälle</th>
+                <th>pro 100'000</th>
+              </tr>
+            </thead>
+            <tbody id="confirmed_2">
+            </tbody>
+          </table>
+        </div>
+      </article>
     </section>
     <section id="overview_zh">
       <header>
-  			<h2 class="flag ZH">Kanton Zürich</h2>
+  			<h2 class="flag flag--ZH">Kanton Zürich</h2>
       </header>
     </section>
-    <section>
+    <section id="districts">
       <header>
         <h2>Nach Bezirk</h2>
       </header>
@@ -95,7 +82,7 @@
         <h3 id="lastTitle"></h3>
         <div class="svg-group">
           <div class="map">
-            <svg class="map__svg" id="bezirkssvg" width="330" height="330"></svg>
+            <svg class="map__svg" id="map_districts" width="460" height="460"></svg>
           </div>
           <table id="confirmed">
             <thead>
@@ -110,7 +97,7 @@
         </div>
       </article>
     </section>
-    <section>
+    <section id="zipcodes">
       <header>
         <h2>Nach Postleitzahl</h2>
       </header>
@@ -118,7 +105,7 @@
         <h3 id="lastPLZSubtitle">Letzte 2 Wochen </h3>
         <div class="svg-group">
           <div class="map">
-            <svg class="map__svg" id="plzsvg" width="330" height="330"></svg>
+            <svg class="map__svg" id="map_zipcodes" width="460" height="460"></svg>
           </div>
           <div class="tableFixHead" id="scrolldiv">
             <table id="plztable" class="tableFixHead">

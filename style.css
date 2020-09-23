@@ -3,7 +3,11 @@
     color-scheme: light dark;
     --color-main: #000;
     --color-background: #fff;
-    --canvas-minwidth: 600px;
+	--canvas-minwidth: 600px;
+	--color-selection: #1f74da; /* rgba(31, 116, 218, 1); */
+	--color-risk-high: #cb1a50; /* rgba(203, 26, 80, 1); */
+	--color-risk-medium: #dc9111; /* rgba(220, 145, 17, 1); */
+	--color-risk-low: #388613; /* rgba(56, 134, 19, 1); */
 }
 @media (prefers-color-scheme: dark) {
     :root {
@@ -107,14 +111,67 @@ table tr th:nth-child(1) {
 /**
  * Map
  */
- .svg-group .map {
-	 display: inline-block;
-	width: calc((100% - 2.3em) / 2);
+.map {
+	display: block;
+	width: 100%;
+}
+
+@media (min-width: 751px) {
+	.svg-group .map {
+		display: inline-block;
+		width: calc((100% - 2.3em) / 2);
+	}
 }
 
 .map__svg {
 	display: block;
 	margin: 0 auto;
+	width: 100%;
+}
+
+.map__svg path {
+	stroke-linejoin: round;
+}
+
+/**
+ * Lake
+ */
+.lake {
+	stroke: var(--color-background);
+	fill: var(--color-background);
+}
+
+/**
+ * Area
+ */
+.area {
+	stroke: var(--color-background);
+	fill: grey;
+	cursor: pointer;
+}
+
+.area--risk-high { fill: var(--color-risk-high); }
+.area--risk-medium { fill: var(--color-risk-medium); }
+.area--risk-low { fill: var(--color-risk-low); }
+
+.area--selected.area--risk-high { fill: #631026; }
+.area--selected.area--risk-medium { fill: #80591e; }
+.area--selected.area--risk-low { fill: #1b410a; }
+
+/**
+ * Row
+ */
+.row td {
+	cursor: pointer;
+}
+
+.row--selected td {
+	background-color: var(--color-selection);
+	color: white;
+}
+
+.row--selected .cell--last-week {
+	color: #91b7ed;
 }
 
 .table-group,
@@ -127,7 +184,7 @@ table tr th:nth-child(1) {
 	margin-right: 2em;
 	width: calc((100% - 2.3em) / 2);
 }
-.svg-group .tableFixHead {
+.svg-group #scrolldiv {
 	width: calc((100% - 2.3em) / 2);
 }
 .table-group table:nth-child(2),
@@ -244,11 +301,12 @@ h2, h3 {
 	text-align: left;
 	width: 40%;
 }
-#confirmed_1 td:nth-child(2),
+/* #confirmed_1 td:nth-child(2),
 #confirmed_2 td:nth-child(2),
 #confirmed td:nth-child(2),
-#plzbody td:nth-child(3) {
-	opacity: 0.5;
+#plzbody td:nth-child(3), */
+.cell--last-week {
+	color: grey;
 }
 .canvas-dummy {
 	overflow-x: scroll;
@@ -301,80 +359,86 @@ button {
 	background-position: left top;
 	padding-left: 1.75em;
 }
-.flag.AG { background-image: url(flags/ag.png); }
-.flag.AI { background-image: url(flags/ai.png); }
-.flag.AR { background-image: url(flags/ar.png); }
-.flag.BE { background-image: url(flags/be.png); }
-.flag.BL { background-image: url(flags/bl.png); }
-.flag.BS { background-image: url(flags/bs.png); }
-.flag.CH { background-image: url(flags/ch.png); }
-.flag.FL { background-image: url(flags/fl.png); }
-.flag.FR { background-image: url(flags/fr.png); }
-.flag.GE { background-image: url(flags/ge.png); }
-.flag.GL { background-image: url(flags/gl.png); }
-.flag.GR { background-image: url(flags/gr.png); }
-.flag.JU { background-image: url(flags/ju.png); }
-.flag.LI { background-image: url(flags/li.png); }
-.flag.LU { background-image: url(flags/lu.png); }
-.flag.NE { background-image: url(flags/ne.png); }
-.flag.NW { background-image: url(flags/nw.png); }
-.flag.OW { background-image: url(flags/ow.png); }
-.flag.SG { background-image: url(flags/sg.png); }
-.flag.SH { background-image: url(flags/sh.png); }
-.flag.SO { background-image: url(flags/so.png); }
-.flag.SZ { background-image: url(flags/sz.png); }
-.flag.TG { background-image: url(flags/tg.png); }
-.flag.TI { background-image: url(flags/ti.png); }
-.flag.UR { background-image: url(flags/ur.png); }
-.flag.VD { background-image: url(flags/vd.png); }
-.flag.VS { background-image: url(flags/vs.png); }
-.flag.ZG { background-image: url(flags/zg.png); }
-.flag.ZH { background-image: url(flags/zh.png); }
+.flag.flag--AG { background-image: url(flags/ag.png); }
+.flag.flag--AI { background-image: url(flags/ai.png); }
+.flag.flag--AR { background-image: url(flags/ar.png); }
+.flag.flag--BE { background-image: url(flags/be.png); }
+.flag.flag--BL { background-image: url(flags/bl.png); }
+.flag.flag--BS { background-image: url(flags/bs.png); }
+.flag.flag--CH { background-image: url(flags/ch.png); }
+.flag.flag--FL { background-image: url(flags/fl.png); }
+.flag.flag--FR { background-image: url(flags/fr.png); }
+.flag.flag--GE { background-image: url(flags/ge.png); }
+.flag.flag--GL { background-image: url(flags/gl.png); }
+.flag.flag--GR { background-image: url(flags/gr.png); }
+.flag.flag--JU { background-image: url(flags/ju.png); }
+.flag.flag--LI { background-image: url(flags/li.png); }
+.flag.flag--LU { background-image: url(flags/lu.png); }
+.flag.flag--NE { background-image: url(flags/ne.png); }
+.flag.flag--NW { background-image: url(flags/nw.png); }
+.flag.flag--OW { background-image: url(flags/ow.png); }
+.flag.flag--SG { background-image: url(flags/sg.png); }
+.flag.flag--SH { background-image: url(flags/sh.png); }
+.flag.flag--SO { background-image: url(flags/so.png); }
+.flag.flag--SZ { background-image: url(flags/sz.png); }
+.flag.flag--TG { background-image: url(flags/tg.png); }
+.flag.flag--TI { background-image: url(flags/ti.png); }
+.flag.flag--UR { background-image: url(flags/ur.png); }
+.flag.flag--VD { background-image: url(flags/vd.png); }
+.flag.flag--VS { background-image: url(flags/vs.png); }
+.flag.flag--ZG { background-image: url(flags/zg.png); }
+.flag.flag--ZH { background-image: url(flags/zh.png); }
 @media (prefers-color-scheme: dark) {
-	.flag.AG { background-image: url(flags/ag-dark.png); }
-	.flag.AI { background-image: url(flags/ai-dark.png); }
-	.flag.AR { background-image: url(flags/ar-dark.png); }
-	.flag.BE { background-image: url(flags/be-dark.png); }
-	.flag.BL { background-image: url(flags/bl-dark.png); }
-	.flag.BS { background-image: url(flags/bs-dark.png); }
-	.flag.CH { background-image: url(flags/ch-dark.png); }
-	.flag.FL { background-image: url(flags/fl-dark.png); }
-	.flag.FR { background-image: url(flags/fr-dark.png); }
-	.flag.GE { background-image: url(flags/ge-dark.png); }
-	.flag.GL { background-image: url(flags/gl-dark.png); }
-	.flag.GR { background-image: url(flags/gr-dark.png); }
-	.flag.JU { background-image: url(flags/ju-dark.png); }
-	.flag.LI { background-image: url(flags/li-dark.png); }
-	.flag.LU { background-image: url(flags/lu-dark.png); }
-	.flag.NE { background-image: url(flags/ne-dark.png); }
-	.flag.NW { background-image: url(flags/nw-dark.png); }
-	.flag.OW { background-image: url(flags/ow-dark.png); }
-	.flag.SG { background-image: url(flags/sg-dark.png); }
-	.flag.SH { background-image: url(flags/sh-dark.png); }
-	.flag.SO { background-image: url(flags/so-dark.png); }
-	.flag.SZ { background-image: url(flags/sz-dark.png); }
-	.flag.TG { background-image: url(flags/tg-dark.png); }
-	.flag.TI { background-image: url(flags/ti-dark.png); }
-	.flag.UR { background-image: url(flags/ur-dark.png); }
-	.flag.VD { background-image: url(flags/vd-dark.png); }
-	.flag.VS { background-image: url(flags/vs-dark.png); }
-	.flag.ZG { background-image: url(flags/zg-dark.png); }
-	.flag.ZH { background-image: url(flags/zh-dark.png); }
+	.flag.flag--AG { background-image: url(flags/ag-dark.png); }
+	.flag.flag--AI { background-image: url(flags/ai-dark.png); }
+	.flag.flag--AR { background-image: url(flags/ar-dark.png); }
+	.flag.flag--BE { background-image: url(flags/be-dark.png); }
+	.flag.flag--BL { background-image: url(flags/bl-dark.png); }
+	.flag.flag--BS { background-image: url(flags/bs-dark.png); }
+	.flag.flag--CH { background-image: url(flags/ch-dark.png); }
+	.flag.flag--FL { background-image: url(flags/fl-dark.png); }
+	.flag.flag--FR { background-image: url(flags/fr-dark.png); }
+	.flag.flag--GE { background-image: url(flags/ge-dark.png); }
+	.flag.flag--GL { background-image: url(flags/gl-dark.png); }
+	.flag.flag--GR { background-image: url(flags/gr-dark.png); }
+	.flag.flag--JU { background-image: url(flags/ju-dark.png); }
+	.flag.flag--LI { background-image: url(flags/li-dark.png); }
+	.flag.flag--LU { background-image: url(flags/lu-dark.png); }
+	.flag.flag--NE { background-image: url(flags/ne-dark.png); }
+	.flag.flag--NW { background-image: url(flags/nw-dark.png); }
+	.flag.flag--OW { background-image: url(flags/ow-dark.png); }
+	.flag.flag--SG { background-image: url(flags/sg-dark.png); }
+	.flag.flag--SH { background-image: url(flags/sh-dark.png); }
+	.flag.flag--SO { background-image: url(flags/so-dark.png); }
+	.flag.flag--SZ { background-image: url(flags/sz-dark.png); }
+	.flag.flag--TG { background-image: url(flags/tg-dark.png); }
+	.flag.flag--TI { background-image: url(flags/ti-dark.png); }
+	.flag.flag--UR { background-image: url(flags/ur-dark.png); }
+	.flag.flag--VD { background-image: url(flags/vd-dark.png); }
+	.flag.flag--VS { background-image: url(flags/vs-dark.png); }
+	.flag.flag--ZG { background-image: url(flags/zg-dark.png); }
+	.flag.flag--ZH { background-image: url(flags/zh-dark.png); }
 }
-.flag._101 { background-image: url(flags/101.png); }
-.flag._102 { background-image: url(flags/102.png); }
-.flag._103 { background-image: url(flags/103.png); }
-.flag._104 { background-image: url(flags/104.png); }
-.flag._105 { background-image: url(flags/105.png); }
-.flag._106 { background-image: url(flags/106.png); }
-.flag._107 { background-image: url(flags/107.png); }
-.flag._108 { background-image: url(flags/108.png); }
-.flag._109 { background-image: url(flags/109.png); }
-.flag._110 { background-image: url(flags/110.png); }
-.flag._111 { background-image: url(flags/111.png); }
-.flag._112 { background-image: url(flags/112.png); }
+.flag.flag--101 { background-image: url(flags/101.png); }
+.flag.flag--102 { background-image: url(flags/102.png); }
+.flag.flag--103 { background-image: url(flags/103.png); }
+.flag.flag--104 { background-image: url(flags/104.png); }
+.flag.flag--105 { background-image: url(flags/105.png); }
+.flag.flag--106 { background-image: url(flags/106.png); }
+.flag.flag--107 { background-image: url(flags/107.png); }
+.flag.flag--108 { background-image: url(flags/108.png); }
+.flag.flag--109 { background-image: url(flags/109.png); }
+.flag.flag--110 { background-image: url(flags/110.png); }
+.flag.flag--111 { background-image: url(flags/111.png); }
+.flag.flag--112 { background-image: url(flags/112.png); }
 
-/* !risks */
+/**
+ * Risk
+ */
+.risk {
+	position: relative;
+}
+
 .risk:after {
 	content: '';
 	display: inline-block;
@@ -386,9 +450,27 @@ button {
 	margin-top: 1px;
 	vertical-align: top;
 }
-.risk.high:after { background-color: red; }
-.risk.medium:after { background-color: orange; }
-.risk.low:after { background-color: green; }
+.risk.high:after { background-color: var(--color-risk-high); } /* red */
+.risk.medium:after { background-color: var(--color-risk-medium); } /* orange */
+.risk.low:after { background-color: var(--color-risk-low); } /* green */
+
+.risk:before {
+	position: absolute;
+	content: '';
+	display: block;
+	width: 1rem;
+	height: 0.5rem;
+	border-radius: 0.5rem 0.5rem 0 0;
+	background: transparent;
+	top: 1px;
+	right: 0;
+}
+.risk.low2medium:before { background: linear-gradient(75deg, rgba(56, 134, 19, 0.5) 0%, var(--color-risk-medium) 100%); }
+.risk.low2high:before { background: linear-gradient(60deg, rgba(56, 134, 19, 0.5) 0%, rgba(220, 145, 17, 0.75) 50%, var(--color-risk-high) 100%); }
+.risk.medium2low:before { background: linear-gradient(105deg, rgba(220, 145, 17, 0.5) 0%, var(--color-risk-low) 100%); }
+.risk.medium2high:before { background: linear-gradient(75deg, rgba(220, 145, 17, 0.5) 0%, var(--color-risk-high) 100%); }
+.risk.high2medium:before { background: linear-gradient(105deg, rgba(203, 26, 80, 0.5) 0%, var(--color-risk-medium) 100%); }
+.risk.high2low:before { background: linear-gradient(120deg, rgba(203, 26, 80, 0.5) 0%, rgba(220, 145, 17, 0.75) 50%, var(--color-risk-low) 100%); }
 
 /* !page-footer */
 #page-footer {
