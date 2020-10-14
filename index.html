@@ -25,12 +25,27 @@
     <main>
 		<header id="page-header">
       <h1>Corona-Fälle in der Schweiz und im Kanton Zürich</h1>
-      <p>Daten bereitgstellt durch <a href="https://github.com/openZH/covid_19">das Statistische Amt des Kanton Zürichs</a> und aufbereitet durch <a href="https://twitter.com/rob_salzer">@rob_salzer</a> und <a href="https://twitter.com/esthrbrunnr">@esthrbrunnr</a>.</p>
+      <p>Daten bereitgstellt durch <a href="https://www.bag.admin.ch/bag/de/home/krankheiten/ausbrueche-epidemien-pandemien/aktuelle-ausbrueche-epidemien/novel-cov/situation-schweiz-und-international.html">das Bundesamt für Gesundheit (BAG)</a>, <a href="https://github.com/openZH/covid_19">das Statistische Amt des Kanton Zürichs</a> und aufbereitet durch <a href="https://twitter.com/rob_salzer">@rob_salzer</a> und <a href="https://twitter.com/esthrbrunnr">@esthrbrunnr</a>.</p>
+    </header>
+    <section>
+      <header>
+        <h2>Legende</h2>
+      </header>
+      <article>
+        <p>Die Risiko-Ampel orientiert sich an den Kriterien des BAG für die Einstufung von Gebieten mit erhöhtem Ansteckungsrisiko.</p>
+        <h3>Anzahl Neuinfektionen pro 100'000 Einwohner'innen in 14 Tagen</h3>
+        <ul class="legend">
+          <li><span class="risk low">&nbsp;</span> bis 60: <strong>mässiges Ansteckungsrisiko</strong></li>
+          <li><span class="risk medium">&nbsp;</span> über 60 bis 120: <strong>erhöhtes Ansteckungsrisiko</strong></li>
+          <li><span class="risk high">&nbsp;</span> über 120: <strong>hohes Ansteckungsrisiko</strong></li>
+        </ul>
+      </article>
     </header>
     <section id="index">
 			<header>
-				<h2 class="flag flag--CH">Schweiz</h2>
-			</header>
+        <h2 class="flag flag--CH">Schweiz</h2>
+      </header>
+      <h3 class="source">Gemäss Daten <span id="ch_source__name" class="source__name"></span> vom <span id="ch_source__updated" class="source__updated"></span></h3>
       <div id="loadingspinner">Lade Daten...<br/><div class="lds-ring"><div></div><div></div><div></div><div></div></div></div>
       <div id="loaded"></div>
     </section>
@@ -39,7 +54,7 @@
         <h2>Nach Kanton</h2>
       </header>
       <article id="latest">
-        <h3>Letzte 2 Wochen gemäss Daten des BAG</h3>
+        <h3 class="period">Letzte 2 Wochen <span id="canton_period__dates" class="period__dates"></span></h3>
         <div class="map">
           <svg class="map__svg" id="map_cantons" width="960" height="600"></svg>
         </div>
@@ -49,7 +64,7 @@
               <tr>
                 <th>Kanton</th>
                 <th colspan="2">Neue Fälle</th>
-                <th>pro 100'000</th>
+                <th>pro 100k</th>
               </tr>
             </thead>
             <tbody id="confirmed_1">
@@ -60,7 +75,7 @@
               <tr>
                 <th>Kanton</th>
                 <th colspan="2">Neue Fälle</th>
-                <th>pro 100'000</th>
+                <th>pro 100k</th>
               </tr>
             </thead>
             <tbody id="confirmed_2">
@@ -71,15 +86,16 @@
     </section>
     <section id="overview_zh">
       <header>
-  			<h2 class="flag flag--ZH">Kanton Zürich</h2>
+        <h2 class="flag flag--ZH">Kanton Zürich</h2>
       </header>
+      <h3 class="source">Gemäss Daten der Gesundheitsdirektion vom <span id="zh_source__updated" class="source__updated"></span></h3>
     </section>
     <section id="districts">
       <header>
         <h2>Nach Bezirk</h2>
       </header>
       <article>
-        <h3 id="lastTitle"></h3>
+        <h3 class="period"><span id="district_period__dates" class="period__dates"></span></h3>
         <div class="svg-group">
           <div class="map">
             <svg class="map__svg" id="map_districts" width="460" height="460"></svg>
@@ -89,7 +105,7 @@
               <tr>
                 <th>Bezirk</th>
                 <th colspan="2">Neue Fälle</th>
-                <th>pro 100'000</th>
+                <th>pro 100k</th>
               </tr>
             </thead>
             <tbody id="districtTable"></tbody>
@@ -102,7 +118,7 @@
         <h2>Nach Postleitzahl</h2>
       </header>
       <article>
-        <h3 id="lastPLZSubtitle">Letzte 2 Wochen </h3>
+        <h3 class="period">Letzte 2 Wochen <span id="zip_period__dates" class="period__dates"></span></h3>
         <div class="svg-group">
           <div class="map">
             <svg class="map__svg" id="map_zipcodes" width="460" height="460"></svg>
@@ -114,7 +130,7 @@
                   <th>PLZ</th>
                   <th>Ort</th>
                   <th colspan="2">Neue Fälle</th>
-                  <th>pro 100'000</th>
+                  <th>pro 100k</th>
                 </tr>
               </thead>
               <tbody id="plzbody"></tbody>
@@ -123,28 +139,12 @@
         </div>
       </article>
     </section>
-    <section>
-      <header>
-        <h2>Legende</h2>
-      </header>
-      <article>
-        <p>Die Risiko-Ampel orientiert sich an den Kriterien des BAG für die Einstufung von Gebieten mit erhöhtem Ansteckungsrisiko.</p>
-        <h3>Anzahl Neuinfektionen pro 100'000 Einwohner'innen in 14 Tagen</h3>
-        <ul class="legend">
-          <li><span class="risk low">&nbsp;</span> bis 60: <strong>geringes Ansteckungsrisiko</strong></li>
-          <li><span class="risk medium">&nbsp;</span> über 60 bis 120: <strong>erhöhtes Ansteckungsrisiko</strong></li>
-          <li><span class="risk high">&nbsp;</span> über 120: <strong>hohes Ansteckungsrisiko</strong></li>
-        </ul>
-      </article>
-    </section>
   </main>
   <footer id="page-footer">
-		<p>
-      Code auf <a href="https://github.com/estherbrunner/COVID_19_CH">GitHub</a>.<br/>
-      Fork von <a href="https://github.com/rsalzer/COVID_19_CH">https://github.com/rsalzer/COVID_19_CH</a> und <a href="https://github.com/rsalzer/COVID_19_KT_ZH">https://github.com/rsalzer/COVID_19_KT_ZH</a> by <a href="https://twitter.com/rob_salzer">@rob_salzer</a>.<br/>
-      Design by <a href="https://twitter.com/superpixel">@superpixel</a><br/>
-      Countryflags by <a href="https://github.com/lipis/flag-icon-css">flag-icon-css</a><br/>
-    </p>
+		<p>Code auf <a href="https://github.com/estherbrunner/COVID_19_CH">GitHub</a>.</p>
+    <p>Fork von <a href="https://github.com/rsalzer/COVID_19_CH">https://github.com/rsalzer/COVID_19_CH</a> und <a href="https://github.com/rsalzer/COVID_19_KT_ZH">https://github.com/rsalzer/COVID_19_KT_ZH</a> by <a href="https://twitter.com/rob_salzer">@rob_salzer</a>.</p>
+    <p>Design by <a href="https://twitter.com/superpixel">@superpixel</a> und <a href="https://twitter.com/esthrbrunnr">@esthrbrunnr</a></p>
+    <p>Countryflags by <a href="https://github.com/lipis/flag-icon-css">flag-icon-css</a></p>
 	</footer>
   <script src="translate.js"></script>
   <script src="l10n.js"></script>

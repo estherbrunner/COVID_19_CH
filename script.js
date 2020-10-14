@@ -1,23 +1,20 @@
-var data;
-
 var oldDate = null;
 console.logCopy = console.log.bind(console);
-console.log = function(arguments)
-{
-    if (arguments.length)
-    {
-        var d = new Date();
-        if(oldDate==null) timestamp = '';
-        else {
-          var diff = d-oldDate;
-          var msec = diff;
-          var ss = Math.floor(msec / 1000);
-          msec -= ss * 1000;
-          var timestamp = '[' + ss + ':' + msec + '] ';
-        }
-        oldDate = d;
-        this.logCopy(timestamp, arguments);
+console.log = function(arguments) {
+  if (arguments.length) {
+    var d = new Date();
+    if (oldDate == null) {
+      timestamp = '';
+    } else {
+      var diff = d-oldDate;
+      var msec = diff;
+      var ss = Math.floor(msec / 1000);
+      msec -= ss * 1000;
+      var timestamp = '[' + ss + ':' + msec + '] ';
     }
+    oldDate = d;
+    this.logCopy(timestamp, arguments);
+  }
 };
 
 const cantons = ['AG', 'AI', 'AR', 'BE', 'BL', 'BS', 'FR', 'GE', 'GL', 'GR', 'JU', 'LU', 'NE', 'NW', 'OW', 'SG', 'SH', 'SO', 'SZ', 'TG', 'TI', 'UR', 'VD', 'VS', 'ZG', 'ZH', 'FL'];
@@ -101,8 +98,9 @@ const cartesianAxesTypes = {
 };
 
 var verbose = true;
-var dataSourceCantons = 'BAG';
-var data = [];
+var dataSourceCantons = 'BAG'; // Cantons
+var bagData = [];
+var cantonsData = [];
 var dataPerDay = [];
 Chart.defaults.global.defaultFontFamily = "IBM Plex Sans";
 document.getElementById("loaded").style.display = 'none';
@@ -110,7 +108,13 @@ document.getElementById("loaded").style.display = 'none';
 //console.log("START");
 getCantons();
 
-function getCanton(i) {
+/**
+ * Load data for cantons
+ * 
+ * @param {integer} i - index of canton
+ * @param {function} callback - function to call after data is loaded
+ */
+function getCanton(i, callback) {
   // var url = "https://raw.githubusercontent.com/openZH/covid_19/master/COVID19_Fallzahlen_CH_total_v2.csv";
   var url = 'https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_kanton_total_csv_v2/COVID19_Fallzahlen_Kanton_'+cantons[i]+'_total.csv';
   if (cantons[i] == "FL") {
@@ -126,17 +130,13 @@ function getCanton(i) {
         if (splitDate.length > 1) {
           csvdata[x].date = splitDate[2] + '-' + splitDate[1] + '-' + splitDate[0];
         }
-        data.push(csvdata[x]);
+        cantonsData.push(csvdata[x]);
       }
       if (verbose) {
         console.log("added " + csvdata.length + " rows for " + cantons[i]);
       }
     }
-    if (i < cantons.length - 1) {
-      getCanton(i + 1);
-    } else {
-      processData();
-    }
+    if (typeof callback === 'function') callback();
   });
 }
 
@@ -144,22 +144,17 @@ function processData() {
   document.getElementById("loadingspinner").style.display = 'none';
   document.getElementById("loaded").style.display = 'block';
   getDataPerDay();
-  // console.log("Process actual");
   processActualData();
   drawBarChart('CH', dataPerDay, 'index', '#da291c');
   var canton = 'ZH';
   var filteredData = dataPerDay.map(function(d) {
-    return d.data.filter(function(dd) { return dd.Canton === canton; })[0];
+    return d.canton.filter(function(dd) { return dd.Canton === canton; })[0];
   });
   drawBarChart(canton, filteredData, 'overview_zh', '#0076bd');
-  /* for(var i=0; i<cantons.length; i++) {
-    barChartCases(cantons[i]);
-  } */
   getDistricts();
   getZIP();
 }
 
-var bagData;
 function getCantons() {
   var url = 'https://raw.githubusercontent.com/rsalzer/COVID_19_BAG/master/data/casesPerCanton.csv';
   d3.queue()
@@ -170,11 +165,20 @@ function getCantons() {
         .center([8.3, 46.8])
         .scale(11000);
       drawMap('#map_cantons', topo, projection, null, function() {
+        var source = document.getElementById('ch_source__name');
         if (dataSourceCantons === 'BAG') {
+          source.innerHTML = 'des BAG';
           bagData = csvdata;
-          processData();
+          getCanton(25, processData); // ZH
         } else {
-          getCanton(0);
+          source.innerHTML = 'der Kantone';
+          for (var i = 0; i < cantons.length; i++) {
+            if (i === cantons.length - 1) {
+              getCanton(i, processData);
+            } else {
+              getCanton(i);
+            }
+          }
         }
       });
     });
@@ -211,21 +215,23 @@ function getZIP() {
 }
 
 function getDataPerDay() {
-  var mostRecent = getTotalConfCases('ZH', getDateString(new Date()), false) ? 0 : 1;
+  var mostRecent = getTotalConfCases('ZH', getDateString(new Date()), false, true) ? 0 : 1;
   for (var j = 30; j >= mostRecent; j--) {
     var dateString = getDateString(new Date(), -j);
     var singleDayObject = {
       Date: dateString,
-      data: []
+      bag: [],
+      canton: []
     };
     for (var i = 0; i < cantons.length - 1; i++) { // without FL
-      singleDayObject.data.push(getSingleDayObject(cantons[i], dateString));
+      singleDayObject.bag.push(getSingleDayObject(cantons[i], dateString, true));
     }
-    singleDayObject.TotalConfCases = singleDayObject.data.reduce(function(acc, val) { return acc + val.TotalConfCases; }, 0);
-    singleDayObject.NewConfCases_1day = singleDayObject.data.reduce(function(acc, val) { return acc + val.NewConfCases_1day; }, 0);
-    singleDayObject.NewConfCases_7days = singleDayObject.data.reduce(function(acc, val) { return acc + val.NewConfCases_7days; }, 0);
-    if (singleDayObject.data[0].NewConfCases_7dayAverage) {
-      singleDayObject.NewConfCases_7dayAverage = singleDayObject.data.reduce(function(acc, val) { return acc + val.NewConfCases_7dayAverage; }, 0);
+    singleDayObject.canton.push(getSingleDayObject('ZH', dateString, false)); // get cantonal data for 'ZH'
+    singleDayObject.TotalConfCases = singleDayObject.bag.reduce(function(acc, val) { return acc + val.TotalConfCases; }, 0);
+    singleDayObject.NewConfCases_1day = singleDayObject.bag.reduce(function(acc, val) { return acc + val.NewConfCases_1day; }, 0);
+    singleDayObject.NewConfCases_7days = singleDayObject.bag.reduce(function(acc, val) { return acc + val.NewConfCases_7days; }, 0);
+    if (singleDayObject.bag[0].NewConfCases_7dayAverage) {
+      singleDayObject.NewConfCases_7dayAverage = singleDayObject.bag.reduce(function(acc, val) { return acc + val.NewConfCases_7dayAverage; }, 0);
     }
     dataPerDay.push(singleDayObject);
   }
@@ -236,15 +242,23 @@ function getDataPerDay() {
 }
 
 function processActualData() {
-  var dataPerCanton = dataPerDay[dataPerDay.length - 1].data.map(function(value, i) {
+  var dataPerCanton = dataPerDay[dataPerDay.length - 1].bag.map(function(value, i) {
     return {
       'Canton': value.Canton,
       'NewConfCases_7days': value.NewConfCases_7days,
-      'OldConfCases_7days': dataPerDay[dataPerDay.length - 8].data[i].NewConfCases_7days,
+      'OldConfCases_7days': dataPerDay[dataPerDay.length - 8].bag[i].NewConfCases_7days,
       'Population': population[value.Canton],
       'Date': value.Date,
     }
   });
+  var lastDate = dataPerDay[dataPerDay.length - 1].Date;
+  var endDay = new Date(lastDate);
+  var startDay = new Date(lastDate);
+  startDay.setDate(startDay.getDate() - 13);
+  var period = document.getElementById('canton_period__dates');
+  period.innerHTML = '(' + formatDate(startDay) + ' – ' + formatDate(endDay) + ')';
+  var updated = document.getElementById('ch_source__updated');
+  updated.innerHTML = formatDate(endDay);
   var table;
   var firstTable = document.getElementById("confirmed_1");
   var secondTable = document.getElementById("confirmed_2");
@@ -292,14 +306,16 @@ function processActualData() {
  * 
  * @param {string} canton - 2 letter identifier of canton
  * @param {string} dateString - ISO formatted date string
+ * @param {boolean} useBAGData - use BAG data source, defaults to whether dataSourceCantons is 'BAG'
  * @returns {object} - single day object
  */
-function getSingleDayObject(canton, dateString) {
-  var today = getTotalConfCases(canton, dateString, true);
-  var yesterday = getTotalConfCases(canton, getDateString(new Date(dateString), -1), true);
-  var minus4days = getTotalConfCases(canton, getDateString(new Date(dateString), -4), true);
-  var plus3days = getTotalConfCases(canton, getDateString(new Date(dateString), +3), false);
-  var minus7days = getTotalConfCases(canton, getDateString(new Date(dateString), -7), true);
+function getSingleDayObject(canton, dateString, useBAGData) {
+  if (typeof useBAGData === 'undefined') useBAGData = (dataSourceCantons === 'BAG');
+  var today = getTotalConfCases(canton, dateString, true, useBAGData);
+  var yesterday = getTotalConfCases(canton, getDateString(new Date(dateString), -1), true, useBAGData);
+  var minus4days = getTotalConfCases(canton, getDateString(new Date(dateString), -4), true, useBAGData);
+  var plus3days = getTotalConfCases(canton, getDateString(new Date(dateString), +3), false, useBAGData);
+  var minus7days = getTotalConfCases(canton, getDateString(new Date(dateString), -7), true, useBAGData);
   var singleDayObject = {
     Canton: canton,
     Date: dateString
@@ -319,19 +335,20 @@ function getSingleDayObject(canton, dateString) {
  * @param {string} canton - 2 letter identifier of canton
  * @param {string} dateString - ISO formatted date string
  * @param {boolean} searchPast - if no data is available return data from last date with data?
+ * @param {boolean} useBAGData - use BAG data source
  * @returns {number} - total number of confirmed cases
  */
-function getTotalConfCases(canton, dateString, searchPast) {
+function getTotalConfCases(canton, dateString, searchPast, useBAGData) {
   var filteredData;
   var variable;
-  if (dataSourceCantons === 'BAG') {
+  if (useBAGData) {
     variable = canton;
     filteredData = bagData.filter(function(d) {
       if (d.date == dateString && d[canton] != '') return d;
     });
   } else {
     variable = 'ncumul_conf';
-    filteredData = data.filter(function(d) {
+    filteredData = cantonsData.filter(function(d) {
       if (d.abbreviation_canton_and_fl == canton && d.date == dateString && d[variable] != '') return d;
     });
   }
@@ -340,7 +357,7 @@ function getTotalConfCases(canton, dateString, searchPast) {
   }
   // else try day before
   if (searchPast) {
-    return getTotalConfCases(canton, getDateString(new Date(dateString), -1), true);
+    return getTotalConfCases(canton, getDateString(new Date(dateString), -1), true, useBAGData);
   }
   return null;
 }
@@ -354,21 +371,33 @@ function getTotalConfCases(canton, dateString, searchPast) {
  */
 function drawBarChart(place, filteredData, sectionId) {
   var section = document.getElementById(sectionId);
-  var article = document.createElement("article");
+  var article = document.createElement('article');
   if (sectionId === 'cantons') {
     article.id = 'barchart_canton';
     if (document.getElementById(article.id)) {
       document.getElementById(article.id).remove();
     }
   }
-  var h3 = document.createElement("h3");
+  var h3 = document.createElement('h3');
   var nnew2weeks = filteredData[filteredData.length - 1].NewConfCases_7days + filteredData[filteredData.length - 8].NewConfCases_7days;
   var casesPerCapita = Math.round(nnew2weeks / population[place]);
-  if (casesPerCapita >= 120) h3.className = 'risk high';
-  else if (casesPerCapita >= 60) h3.className = 'risk medium';
-  else h3.className = 'risk low';
-  text = document.createTextNode(formatNumber(nnew2weeks) + ' neue Fälle in den letzten 2 Wochen; ' + casesPerCapita + ' pro 100\'000 Einwohner\'innen');
-  h3.appendChild(text);
+  var riskLabel = '';
+  if (casesPerCapita >= 120){
+    h3.className = 'figure figure--high';
+    riskLabel = 'Hohes Risiko:';
+  } else if (casesPerCapita >= 60) {
+    h3.className = 'figure figure--medium';
+    riskLabel = 'Erhöhtes Risiko:';
+  } else {
+    h3.className = 'figure figure--low';
+    riskLabel = 'Mässiges Risiko:';
+  }
+  h3.innerHTML = '<span class="figure__card figure__card--absolute"><span class="figure__label">Neue Fälle:</span>' +
+    '<span class="figure__number">' + formatNumber(nnew2weeks) + '</span>' +
+    '<span class="figure__label figure__label--centered">in den letzten 2 Wochen</span></span>' +
+    '<span class="figure__card figure__card--relative"><span class="figure__label">' + riskLabel + '</span>' +
+    '<span class="figure__number">' + casesPerCapita + '</span>' +
+    '<span class="figure__label figure__label--centered">pro 100\'000 Einwohner\'innen</span></span>';
   article.appendChild(h3);
   var div = document.createElement("div");
   div.className = "canvas-dummy";
@@ -573,7 +602,7 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
         document.getElementById('row_' + id).classList.add(selectedRowClass);
         if (container === '#map_cantons') {
           var filteredData = dataPerDay.map(function(d) {
-            return d.data.filter(function(dd) { return dd.Canton === id; })[0];
+            return d.bag.filter(function(dd) { return dd.Canton === id; })[0];
           });
           drawBarChart(id, filteredData, 'cantons', '#0076bd');
         }
@@ -608,8 +637,8 @@ function lastBezirksData(data) {
       var endDay = new Date(dateOfWeek);
       endDay.setDate(endDay.getDate() + 13);
       var text = `Wochen ${lastWeek.Week} und ${thisWeek.Week} (${formatDate(dateOfWeek)} – ${formatDate(endDay)})`;
-      var lastTitle = document.getElementById("lastTitle");
-      lastTitle.innerHTML = text;
+      var period = document.getElementById('district_period__dates');
+      period.innerHTML = text;
     }
 
     var tr = document.createElement('tr');
@@ -652,8 +681,10 @@ function drawPLZTable(plzdata) {
   var endDay = new Date(lastDate);
   var startDay = new Date(lastDate);
   startDay.setDate(startDay.getDate() - 13);
-  var h3 = document.getElementById("lastPLZSubtitle");
-  h3.innerHTML = h3.innerHTML + ' (' + formatDate(startDay) + ' – ' + formatDate(endDay) + ')';
+  var period = document.getElementById('zip_period__dates');
+  period.innerHTML = '(' + formatDate(startDay) + ' – ' + formatDate(endDay) + ')';
+  var updated = document.getElementById('zh_source__updated');
+  updated.innerHTML = formatDate(endDay);
   var filteredPLZData = plzdata.filter(function(d) { if (d.Date == lastDate) return d; });
   for (var i=0; i<filteredPLZData.length; i++) {
     var singlePLZ = filteredPLZData[i];
