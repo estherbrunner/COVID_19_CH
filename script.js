@@ -382,7 +382,13 @@ function drawBarChart(place, filteredData, sectionId) {
   var nnew2weeks = filteredData[filteredData.length - 1].NewConfCases_7days + filteredData[filteredData.length - 8].NewConfCases_7days;
   var casesPerCapita = Math.round(nnew2weeks / population[place]);
   var riskLabel = '';
-  if (casesPerCapita >= 120){
+  if (casesPerCapita >= 480) {
+    h3.className = 'figure figure--highest';
+    riskLabel = 'Äusserst hohes Risiko:';
+  } else if (casesPerCapita >= 240) {
+    h3.className = 'figure figure--higher';
+    riskLabel = 'Sehr hohes Risiko:';
+  } else if (casesPerCapita >= 120) {
     h3.className = 'figure figure--high';
     riskLabel = 'Hohes Risiko:';
   } else if (casesPerCapita >= 60) {
@@ -422,9 +428,11 @@ function drawBarChart(place, filteredData, sectionId) {
     if (d.NewConfCases_7dayAverage) return Math.round(100 * d.NewConfCases_7dayAverage) / 100;
   });
   var colors = filteredData.map(function(d) {
-    if (d.NewConfCases_1day >= 120 * population[place] / 14) return '#cb1a50'; // red
-    else if (d.NewConfCases_1day >= 60 * population[place] / 14) return '#dc9111'; // orange
-    return '#388613'; // green
+    if (d.NewConfCases_1day >= 480 * population[place] / 14) return '#5f23a1'; // purple
+    else if (d.NewConfCases_1day >= 240 * population[place] / 14) return '#a63585'; // pink
+    else if (d.NewConfCases_1day >= 120 * population[place] / 14) return '#d35a45'; // red
+    else if (d.NewConfCases_1day >= 60 * population[place] / 14) return '#d29601'; // orange
+    return '#8fd459'; // green
   });
 
   new Chart(canvas.id, {
@@ -759,17 +767,35 @@ function getRiskClass(casesLastWeek, casesThisWeek, population) {
   var tendency = '';
   if (casesThisWeek > (1.1 * casesLastWeek)) changeSymbol = '&#8599;&#xFE0E; '; // more than 10% increase
   else if (casesThisWeek < (0.9 * casesLastWeek)) changeSymbol = '&#8600;&#xFE0E; '; // more than 10% decrease
-  if (casesPerCapita_2weeks >= 120) riskClass = 'high';
+  if (casesPerCapita_2weeks >= 480) riskClass = 'highest';
+  else if (casesPerCapita_2weeks >= 240) riskClass = 'higher';
+  else if (casesPerCapita_2weeks >= 120) riskClass = 'high';
   else if (casesPerCapita_2weeks >= 60) riskClass = 'medium';
   else riskClass = 'low';
-  if (casesPerCapita_lastWeek >= 60) {
-    if (casesPerCapita_thisWeek < 30) tendency = ' high2low';
+  if (casesPerCapita_lastWeek >= 240) {
+    if (casesPerCapita_thisWeek < 30) tendency = ' highest2low';
+    else if (casesPerCapita_thisWeek < 60) tendency = ' highest2medium';
+    else if (casesPerCapita_thisWeek < 120) tendency = ' highest2high';
+    else if (casesPerCapita_thisWeek < 240) tendency = ' highest2higher';
+  } else if (casesPerCapita_lastWeek >= 120) {
+    if (casesPerCapita_thisWeek >= 240) tendency = ' higher2highest';
+    else if (casesPerCapita_thisWeek < 30) tendency = ' higher2low';
+    else if (casesPerCapita_thisWeek < 60) tendency = ' higher2medium';
+    else if (casesPerCapita_thisWeek < 120) tendency = ' higher2high';
+  } else if (casesPerCapita_lastWeek >= 60) {
+    if (casesPerCapita_thisWeek >= 240) tendency = ' high2highest';
+    else if (casesPerCapita_thisWeek >= 120) tendency = ' high2higher';
+    else if (casesPerCapita_thisWeek < 30) tendency = ' high2low';
     else if (casesPerCapita_thisWeek < 60) tendency = ' high2medium';
   } else if (casesPerCapita_lastWeek >= 30) {
-    if (casesPerCapita_thisWeek >= 60) tendency = ' medium2high';
+    if (casesPerCapita_thisWeek >= 240) tendency = ' medium2highest';
+    else if (casesPerCapita_thisWeek >= 120) tendency = ' medium2higher';
+    else if (casesPerCapita_thisWeek >= 60) tendency = ' medium2high';
     else if (casesPerCapita_thisWeek < 30) tendency = ' medium2low';
   } else {
-    if (casesPerCapita_thisWeek >= 60) tendency = ' low2high';
+    if (casesPerCapita_thisWeek >= 240) tendency = ' low2highest';
+    else if (casesPerCapita_thisWeek >= 120) tendency = ' low2higher';
+    else if (casesPerCapita_thisWeek >= 60) tendency = ' low2high';
     else if (casesPerCapita_thisWeek >= 30) tendency = ' low2medium';
   }
   return {
