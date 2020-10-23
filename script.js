@@ -379,31 +379,40 @@ function drawBarChart(place, filteredData, sectionId) {
     }
   }
   var h3 = document.createElement('h3');
-  var nnew2weeks = filteredData[filteredData.length - 1].NewConfCases_7days + filteredData[filteredData.length - 8].NewConfCases_7days;
-  var casesPerCapita = Math.round(nnew2weeks / population[place]);
+  var casesLastWeek = filteredData[filteredData.length - 8].NewConfCases_7days;
+  var casesThisWeek = filteredData[filteredData.length - 1].NewConfCases_7days;
+  var risk = getRiskClass(casesLastWeek, casesThisWeek, population[place]);
+
   var riskLabel = '';
-  if (casesPerCapita >= 480) {
-    h3.className = 'figure figure--highest';
-    riskLabel = 'Äusserst hohes Risiko:';
-  } else if (casesPerCapita >= 240) {
-    h3.className = 'figure figure--higher';
-    riskLabel = 'Sehr hohes Risiko:';
-  } else if (casesPerCapita >= 120) {
-    h3.className = 'figure figure--high';
-    riskLabel = 'Hohes Risiko:';
-  } else if (casesPerCapita >= 60) {
-    h3.className = 'figure figure--medium';
-    riskLabel = 'Erhöhtes Risiko:';
-  } else {
-    h3.className = 'figure figure--low';
-    riskLabel = 'Mässiges Risiko:';
-  }
+  if (risk.casesPerCapita >= 960) riskLabel = 'Extrem hohes Risiko:';
+  else if (risk.casesPerCapita >= 480) riskLabel = 'Äusserst hohes Risiko:';
+  else if (risk.casesPerCapita >= 240) riskLabel = 'Sehr hohes Risiko:';
+  else if (risk.casesPerCapita >= 120) riskLabel = 'Hohes Risiko:';
+  else if (risk.casesPerCapita >= 60) riskLabel = 'Erhöhtes Risiko:';
+  else riskLabel = 'Mässiges Risiko:';
+
+  var tendencyLabel = '';
+  if (risk.percentChange >= 100) tendencyLabel = 'sehr schnell steigend';
+  else if (risk.percentChange >= 50) tendencyLabel = 'schnell steigend';
+  else if (risk.percentChange >= 10) tendencyLabel = 'steigend';
+  else if (risk.percentChange <= -100) tendencyLabel = 'sehr schnell sinkend';
+  else if (risk.percentChange <= -50) tendencyLabel = 'schnell sinkend';
+  else if (risk.percentChange <= -10) tendencyLabel = 'sinkend';
+  else tendencyLabel = 'gleichbleibend';
+
+  h3.className = 'figure figure--' + risk.className;
   h3.innerHTML = '<span class="figure__card figure__card--absolute"><span class="figure__label">Neue Fälle:</span>' +
-    '<span class="figure__number">' + formatNumber(nnew2weeks) + '</span>' +
-    '<span class="figure__label figure__label--centered">in den letzten 2 Wochen</span></span>' +
+    '<span class="figure__number">' + formatNumber(casesLastWeek + casesThisWeek) + '</span>' +
+    '<span class="figure__label figure__label--centered">in den letzten 2 Wochen</span>' +
+    '<span class="figure__footer"><span class="figure__label figure__label--left figure__label--' + risk.className_lastWeek +
+    '">Vorwoche: ' + formatNumber(casesLastWeek) + '</span>' +
+    '<span class="figure__label figure__label--right figure__label--' + risk.className_thisWeek +
+    '">Diese Woche: ' + formatNumber(casesThisWeek) + '</span></span></span>' +
     '<span class="figure__card figure__card--relative"><span class="figure__label">' + riskLabel + '</span>' +
-    '<span class="figure__number">' + casesPerCapita + '</span>' +
-    '<span class="figure__label figure__label--centered">pro 100\'000 Einwohner\'innen</span></span>';
+    '<span class="figure__number">' + risk.casesPerCapita + '</span>' +
+    '<span class="figure__label figure__label--centered">pro 100\'000 Einwohner\'innen</span>' +
+    '<span class="figure_footer"><span class="figure__label figure__label--left">Tendenz: ' + tendencyLabel +
+    ' (' + risk.symbol + (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%)</span></span></span>';
   article.appendChild(h3);
   var div = document.createElement("div");
   div.className = "canvas-dummy";
@@ -428,11 +437,12 @@ function drawBarChart(place, filteredData, sectionId) {
     if (d.NewConfCases_7dayAverage) return Math.round(100 * d.NewConfCases_7dayAverage) / 100;
   });
   var colors = filteredData.map(function(d) {
-    if (d.NewConfCases_1day >= 480 * population[place] / 14) return '#5f23a1'; // purple
-    else if (d.NewConfCases_1day >= 240 * population[place] / 14) return '#a63585'; // pink
-    else if (d.NewConfCases_1day >= 120 * population[place] / 14) return '#d35a45'; // red
-    else if (d.NewConfCases_1day >= 60 * population[place] / 14) return '#d29601'; // orange
-    return '#8fd459'; // green
+    if (d.NewConfCases_7dayAverage >= 960 * population[place] / 14) return '#102a45'; // dark blue
+    else if (d.NewConfCases_7dayAverage >= 480 * population[place] / 14) return '#5f23a1'; // purple
+    else if (d.NewConfCases_7dayAverage >= 240 * population[place] / 14) return '#b11c8c'; // pink
+    else if (d.NewConfCases_7dayAverage >= 120 * population[place] / 14) return '#d35a45'; // red
+    else if (d.NewConfCases_7dayAverage >= 60 * population[place] / 14) return '#d29601'; // orange
+    return '#78db10'; // green
   });
 
   new Chart(canvas.id, {
@@ -469,8 +479,8 @@ function drawBarChart(place, filteredData, sectionId) {
           fill: false,
           cubicInterpolationMode: 'monotone',
           spanGaps: false,
-          borderColor: colors,
-          backgroundColor: colors,
+          borderColor: 'transparent',
+          backgroundColor: inDarkMode() ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
           datalabels: {
             align: 'end',
             anchor: 'end'
@@ -480,7 +490,10 @@ function drawBarChart(place, filteredData, sectionId) {
           data: averages,
           order: 0,
           type: 'line',
-          pointRadius: 0,
+          pointRadius: 5,
+          pointBorderWidth: 0,
+          pointBorderColor: 'transparent',
+          pointBackgroundColor: colors,
           spanGaps: true,
           borderColor: inDarkMode() ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
           backgroundColor: 'transparent',
@@ -745,6 +758,8 @@ function getRiskAndChangeDistrict(lastWeek, thisWeek, districtId) {
 function getRiskAndChangePLZ(singlePLZ) {
   var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]);
   var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]);
+  // if (lastWeekParsed == 0) lastWeekParsed = 1; // assume 1
+  // if (thisWeekParsed == 0) thisWeekParsed = 1; // assume 1
   var risk = getRiskClass(lastWeekParsed, thisWeekParsed, (parseInt(singlePLZ.Population) / 100000));
   var svgPolygon = document.getElementById('area_' + singlePLZ.PLZ);
   if (svgPolygon) svgPolygon.classList.add('area--risk-' + risk.className);
@@ -762,47 +777,49 @@ function getRiskClass(casesLastWeek, casesThisWeek, population) {
   var casesPerCapita_2weeks = Math.round((casesLastWeek + casesThisWeek) / population);
   var casesPerCapita_lastWeek = Math.round(casesLastWeek / population);
   var casesPerCapita_thisWeek = Math.round(casesThisWeek / population);
+
   var changeSymbol = '';
-  var riskClass;
-  var tendency = '';
   if (casesThisWeek > (1.1 * casesLastWeek)) changeSymbol = '&#8599;&#xFE0E; '; // more than 10% increase
   else if (casesThisWeek < (0.9 * casesLastWeek)) changeSymbol = '&#8600;&#xFE0E; '; // more than 10% decrease
-  if (casesPerCapita_2weeks >= 480) riskClass = 'highest';
+
+  var riskClass;
+  if (casesPerCapita_2weeks >= 960) riskClass = 'deadly';
+  else if (casesPerCapita_2weeks >= 480) riskClass = 'highest';
   else if (casesPerCapita_2weeks >= 240) riskClass = 'higher';
   else if (casesPerCapita_2weeks >= 120) riskClass = 'high';
   else if (casesPerCapita_2weeks >= 60) riskClass = 'medium';
-  else riskClass = 'low';
-  if (casesPerCapita_lastWeek >= 240) {
-    if (casesPerCapita_thisWeek < 30) tendency = ' highest2low';
-    else if (casesPerCapita_thisWeek < 60) tendency = ' highest2medium';
-    else if (casesPerCapita_thisWeek < 120) tendency = ' highest2high';
-    else if (casesPerCapita_thisWeek < 240) tendency = ' highest2higher';
-  } else if (casesPerCapita_lastWeek >= 120) {
-    if (casesPerCapita_thisWeek >= 240) tendency = ' higher2highest';
-    else if (casesPerCapita_thisWeek < 30) tendency = ' higher2low';
-    else if (casesPerCapita_thisWeek < 60) tendency = ' higher2medium';
-    else if (casesPerCapita_thisWeek < 120) tendency = ' higher2high';
-  } else if (casesPerCapita_lastWeek >= 60) {
-    if (casesPerCapita_thisWeek >= 240) tendency = ' high2highest';
-    else if (casesPerCapita_thisWeek >= 120) tendency = ' high2higher';
-    else if (casesPerCapita_thisWeek < 30) tendency = ' high2low';
-    else if (casesPerCapita_thisWeek < 60) tendency = ' high2medium';
-  } else if (casesPerCapita_lastWeek >= 30) {
-    if (casesPerCapita_thisWeek >= 240) tendency = ' medium2highest';
-    else if (casesPerCapita_thisWeek >= 120) tendency = ' medium2higher';
-    else if (casesPerCapita_thisWeek >= 60) tendency = ' medium2high';
-    else if (casesPerCapita_thisWeek < 30) tendency = ' medium2low';
-  } else {
-    if (casesPerCapita_thisWeek >= 240) tendency = ' low2highest';
-    else if (casesPerCapita_thisWeek >= 120) tendency = ' low2higher';
-    else if (casesPerCapita_thisWeek >= 60) tendency = ' low2high';
-    else if (casesPerCapita_thisWeek >= 30) tendency = ' low2medium';
-  }
+  else if (casesPerCapita_2weeks >= 30) riskClass = 'low';
+  else riskClass = 'lower';
+
+  var riskClass_lastWeek;
+  if (casesPerCapita_lastWeek >= 480) riskClass_lastWeek = 'deadly';
+  else if (casesPerCapita_lastWeek >= 240) riskClass_lastWeek = 'highest';
+  else if (casesPerCapita_lastWeek >= 120) riskClass_lastWeek = 'higher';
+  else if (casesPerCapita_lastWeek >= 60) riskClass_lastWeek = 'high';
+  else if (casesPerCapita_lastWeek >= 30) riskClass_lastWeek = 'medium';
+  else if (casesPerCapita_lastWeek >= 15) riskClass_lastWeek = 'low';
+  else riskClass_lastWeek = 'lower';
+
+  var riskClass_thisWeek;
+  if (casesPerCapita_thisWeek >= 480) riskClass_thisWeek = 'deadly';
+  else if (casesPerCapita_thisWeek >= 240) riskClass_thisWeek = 'highest';
+  else if (casesPerCapita_thisWeek >= 120) riskClass_thisWeek = 'higher';
+  else if (casesPerCapita_thisWeek >= 60) riskClass_thisWeek = 'high';
+  else if (casesPerCapita_thisWeek >= 30) riskClass_thisWeek = 'medium';
+  else if (casesPerCapita_thisWeek >= 15) riskClass_thisWeek = 'low';
+  else riskClass_thisWeek = 'lower';
+
+  var tendencyClass = '';
+  if (riskClass_lastWeek !== riskClass_thisWeek) tendencyClass = ' ' + riskClass_lastWeek + '2' + riskClass_thisWeek;
+
   return {
     casesPerCapita: casesPerCapita_2weeks,
     symbol: changeSymbol,
+    percentChange: Math.round(100 * ((casesThisWeek / casesLastWeek) - 1)),
     className: riskClass,
-    tendency: tendency
+    className_thisWeek: riskClass_thisWeek,
+    className_lastWeek: riskClass_lastWeek,
+    tendency: tendencyClass
   };
 }
 
