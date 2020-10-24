@@ -92,16 +92,13 @@ const population = {
   "ZH": 15.21
 };
 
-const cartesianAxesTypes = {
-  LINEAR: 'linear',
-  LOGARITHMIC: 'logarithmic'
-};
-
 var verbose = true;
 var dataSourceCantons = 'BAG'; // Cantons
 var bagData = [];
 var cantonsData = [];
 var dataPerDay = [];
+var zipDataPerDay = [];
+var dateOffset = 0;
 Chart.defaults.global.defaultFontFamily = "IBM Plex Sans";
 document.getElementById("loaded").style.display = 'none';
 
@@ -144,15 +141,64 @@ function processData() {
   document.getElementById("loadingspinner").style.display = 'none';
   document.getElementById("loaded").style.display = 'block';
   getDataPerDay();
-  processActualData();
-  drawBarChart('CH', dataPerDay, 'index', '#da291c');
+  drawCantonTable();
+  drawBarChart('CH', dataPerDay.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'index');
   var canton = 'ZH';
   var filteredData = dataPerDay.map(function(d) {
     return d.canton.filter(function(dd) { return dd.Canton === canton; })[0];
   });
-  drawBarChart(canton, filteredData, 'overview_zh', '#0076bd');
-  getDistricts();
+  drawBarChart(canton, filteredData.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'overview_zh');
+  // getDistricts();
   getZIP();
+  addEventListeners();
+}
+
+function redrawData(diff) {
+  dateOffset -= diff;
+
+  enableDisableButtons();
+
+  document.querySelector('#index article').remove();
+  drawBarChart('CH', dataPerDay.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'index');
+
+  document.getElementById('confirmed_1').innerHTML = '';
+  document.getElementById('confirmed_2').innerHTML = '';
+  drawCantonTable();
+
+  document.querySelector('#overview_zh article').remove();
+  var canton = 'ZH';
+  var filteredData = dataPerDay.map(function(d) {
+    return d.canton.filter(function(dd) { return dd.Canton === canton; })[0];
+  });
+  drawBarChart(canton, filteredData.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'overview_zh');
+
+  document.getElementById('plzbody').innerHTML = '';
+  drawPLZTable();
+}
+
+function enableDisableButtons() {
+  var startDate = new Date('2020-07-17');
+  var endDate = new Date(zipDataPerDay[zipDataPerDay.length - 1].Date);
+  enableDisableButton('.period__button--prev-week', startDate, endDate, -7);
+  enableDisableButton('.period__button--prev-day', startDate, endDate, -1);
+  enableDisableButton('.period__button--next-day', startDate, endDate, 1);
+  enableDisableButton('.period__button--next-week', startDate, endDate, 7);
+}
+
+function enableDisableButton(selector, startDate, endDate, diff) {
+  var buttonDate = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() - dateOffset + diff));
+  if (buttonDate.getTime() >= startDate.getTime() && buttonDate.getTime() <= endDate.getTime()) {
+    document.querySelectorAll(selector).forEach(function(btn) { btn.removeAttribute('disabled'); });
+  } else {
+    document.querySelectorAll(selector).forEach(function(btn) { btn.setAttribute('disabled', true); });
+  }
+}
+
+function addEventListeners() {
+  document.querySelectorAll('.period__button--prev-week').forEach(function(btn) { btn.addEventListener('click', function() { redrawData(-7); }); });
+  document.querySelectorAll('.period__button--prev-day').forEach(function(btn) { btn.addEventListener('click', function() { redrawData(-1); }); });
+  document.querySelectorAll('.period__button--next-day').forEach(function(btn) { btn.addEventListener('click', function() { redrawData(1); }); });
+  document.querySelectorAll('.period__button--next-week').forEach(function(btn) { btn.addEventListener('click', function() { redrawData(7); }); });
 }
 
 function getCantons() {
@@ -184,7 +230,7 @@ function getCantons() {
     });
 }
 
-function getDistricts() {
+/* function getDistricts() {
   var url = 'https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_bezirke/fallzahlen_kanton_ZH_bezirk.csv';
   d3.queue()
     .defer(d3.json, "https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_bezirke/BezirkeAlleSee_gen_epsg4326_F_KTZH_2020.json")
@@ -197,7 +243,7 @@ function getDistricts() {
         lastBezirksData(csvdata);
       });
     });
-}
+} */
 
 function getZIP() {
   var url = 'https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_plz/fallzahlen_kanton_ZH_plz.csv';
@@ -208,16 +254,18 @@ function getZIP() {
       var projection = d3.geoMercator()
         .center([8.675, 47.43]) // GPS of location to zoom on
         .scale(33000);          // This is like the zoom
+      getZIPDataPerDay(csvdata);
       drawMap('#map_zipcodes', topo, projection, 'PLZ', function() {
-        drawPLZTable(csvdata);
+        drawPLZTable();
       });
     });
 }
 
 function getDataPerDay() {
-  var mostRecent = getTotalConfCases('ZH', getDateString(new Date()), false, true) ? 0 : 1;
-  for (var j = 30; j >= mostRecent; j--) {
-    var dateString = getDateString(new Date(), -j);
+  var mostRecent = new Date(bagData[bagData.length - 1].date);
+  var j = Math.floor((mostRecent - new Date('2020-06-01')) / (1000 * 60 * 60 * 24));
+  for (j; j >= 0; j--) {
+    var dateString = getDateString(mostRecent, -j);
     var singleDayObject = {
       Date: dateString,
       bag: [],
@@ -235,30 +283,44 @@ function getDataPerDay() {
     }
     dataPerDay.push(singleDayObject);
   }
-  // console.log("End preping CH cases");
   if (verbose) {
     console.log(dataPerDay);
   }
 }
 
-function processActualData() {
-  var dataPerCanton = dataPerDay[dataPerDay.length - 1].bag.map(function(value, i) {
+function getZIPDataPerDay(zipdata) {
+  var mostRecent = new Date(zipdata[zipdata.length - 1].Date);
+  var j = Math.floor((mostRecent - new Date('2020-07-09')) / (1000 * 60 * 60 * 24));
+  for (j; j >= 0; j--) {
+    var dateString = getDateString(mostRecent, -j);
+    zipDataPerDay.push({
+      Date: dateString,
+      data: zipdata.filter(function(d) { if (d.Date == dateString) return d; })
+    });
+  }
+  if (verbose) {
+    console.log(zipDataPerDay);
+  }
+}
+
+function drawCantonTable() {
+  var dataPerCanton = dataPerDay[dataPerDay.length - dateOffset - 1].bag.map(function(value, i) {
     return {
       'Canton': value.Canton,
       'NewConfCases_7days': value.NewConfCases_7days,
-      'OldConfCases_7days': dataPerDay[dataPerDay.length - 8].bag[i].NewConfCases_7days,
+      'OldConfCases_7days': dataPerDay[dataPerDay.length - dateOffset - 8].bag[i].NewConfCases_7days,
       'Population': population[value.Canton],
       'Date': value.Date,
     }
   });
-  var lastDate = dataPerDay[dataPerDay.length - 1].Date;
+  var lastDate = dataPerDay[dataPerDay.length - dateOffset - 1].Date;
   var endDay = new Date(lastDate);
   var startDay = new Date(lastDate);
   startDay.setDate(startDay.getDate() - 13);
   var period = document.getElementById('canton_period__dates');
-  period.innerHTML = '(' + formatDate(startDay) + ' – ' + formatDate(endDay) + ')';
+  period.innerHTML = formatDate(startDay) + ' – ' + formatDate(endDay);
   var updated = document.getElementById('ch_source__updated');
-  updated.innerHTML = formatDate(endDay);
+  updated.innerHTML = formatDate(new Date(dataPerDay[dataPerDay.length - 1].Date));
   var table;
   var firstTable = document.getElementById("confirmed_1");
   var secondTable = document.getElementById("confirmed_2");
@@ -412,16 +474,16 @@ function drawBarChart(place, filteredData, sectionId) {
   cards.className = 'figure figure--' + risk.className;
   cards.innerHTML = '<p class="figure__card figure__card--absolute"><span class="figure__label">Neuinfektionen:</span>' +
     '<span class="figure__number"> ' + formatNumber(casesLastWeek + casesThisWeek) + ' </span>' +
-    '<span class="figure__label figure__label--centered"> in den letzten 2 Wochen </span>' +
+    '<span class="figure__label figure__label--centered"> in 2 Wochen </span>' +
     '<span class="figure__footer"><span class="figure__label figure__label--left figure__label--' + risk.className_lastWeek +
-    '">Vorwoche: ' + formatNumber(casesLastWeek) + '</span>' +
+    '">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 14].Date)) + ': <strong>' + formatNumber(casesLastWeek) + '</strong></span>' +
     '<span class="figure__label figure__label--right figure__label--' + risk.className_thisWeek +
-    '">Diese Woche: ' + formatNumber(casesThisWeek) + '</span></span></p>' +
+    '">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 7].Date)) + ': <strong>' + formatNumber(casesThisWeek) + '</strong></span></span></p>' +
     '<p class="figure__card figure__card--relative"><span class="figure__label">14-Tage-Inzidenz:</span>' +
     '<span class="figure__number"> ' + formatNumber(risk.incidence) + ' </span>' +
     '<span class="figure__label figure__label--centered"> ' + riskLabel + ' </span>' +
     '<span class="figure_footer"><span class="figure__label figure__label--left">Tendenz: ' + tendencyLabel +
-    ' (' + risk.symbol + (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%)</span></span></p>';
+    ' (' + risk.symbol + '<strong>' + (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%</strong>)</span></span></p>';
   article.appendChild(cards);
   var div = document.createElement("div");
   div.className = "canvas-dummy";
@@ -544,7 +606,7 @@ function getScales() {
       }
     }],
     yAxes: [{
-      type: cartesianAxesTypes.LINEAR,
+      type: 'linear',
       position: 'right',
       ticks: {
         beginAtZero: true,
@@ -604,6 +666,7 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
   var height = parseInt(svg.attr('height'));
   var selectedArea;
   var getId = function(d) { return (idAttribute ? d.properties[idAttribute] : d.id); };
+  var getName = function(d) { return (d.properties.Ortschaftsname || names[d.id]); };
   var isLake = function(d) { return (d.properties.Ortschaftsname == 'See' || d.properties.BEZ_N == 'See'); };
 
   svg.selectAll('*').remove();
@@ -644,9 +707,13 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
           var filteredData = dataPerDay.map(function(d) {
             return d.bag.filter(function(dd) { return dd.Canton === id; })[0];
           });
-          drawBarChart(id, filteredData, 'cantons', '#0076bd');
+          drawBarChart(id, filteredData.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'cantons');
         }
       }
+    })
+    .append("svg:title")
+    .text(function(d, i) {
+      return getName(d);
     });
 
   var updateSize = function() {
@@ -665,7 +732,7 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
   if (typeof callback === 'function') callback();
 }
 
-function lastBezirksData(data) {
+/* function lastBezirksData(data) {
   var tbody = document.getElementById("districtTable");
   for (var i = 101; i <= 112; i++) {
     var filtered = data.filter(function(d) { if (d.DistrictId == i) return d; } );
@@ -713,24 +780,23 @@ function lastBezirksData(data) {
 
     tbody.appendChild(tr);
   }
-}
+} */
 
-function drawPLZTable(plzdata) {
+function drawPLZTable() {
   var tbody = document.getElementById("plzbody");
-  var lastDate = plzdata[plzdata.length - 1].Date;
+  var lastDate = zipDataPerDay[zipDataPerDay.length - dateOffset - 1].Date;
   var endDay = new Date(lastDate);
   var startDay = new Date(lastDate);
   startDay.setDate(startDay.getDate() - 13);
   var period = document.getElementById('zip_period__dates');
-  period.innerHTML = '(' + formatDate(startDay) + ' – ' + formatDate(endDay) + ')';
+  period.innerHTML = formatDate(startDay) + ' – ' + formatDate(endDay);
   var updated = document.getElementById('zh_source__updated');
-  updated.innerHTML = formatDate(endDay);
-  var filteredPLZData = plzdata.filter(function(d) { if (d.Date == lastDate) return d; });
-  for (var i=0; i<filteredPLZData.length; i++) {
+  updated.innerHTML = formatDate(new Date(zipDataPerDay[zipDataPerDay.length - 1].Date));
+  var filteredPLZData = zipDataPerDay[zipDataPerDay.length - dateOffset - 1].data;
+  for (var i = 0; i < filteredPLZData.length; i++) {
     var singlePLZ = filteredPLZData[i];
-    var plz = ""+singlePLZ.PLZ;
-    var filterForPLZ = plzdata.filter(function(d) { if (d.PLZ == plz) return d; });
-    var lastWeek = filterForPLZ[filterForPLZ.length - 8];
+    var plz = "" + singlePLZ.PLZ;
+    var lastWeek = zipDataPerDay[zipDataPerDay.length - dateOffset - 8].data.filter(function(d) { if (d.PLZ == plz) return d; })[0];
     singlePLZ.OldConfCases_7days = lastWeek.NewConfCases_7days;
     var name = plzNames[plz];
     if (name == undefined) name = '';
@@ -761,25 +827,25 @@ function drawPLZTable(plzdata) {
 
 function getRiskAndChangeCanton(singleCanton) {
   var risk = getRiskClass(singleCanton.OldConfCases_7days, singleCanton.NewConfCases_7days, singleCanton.Population);
-  document.getElementById('area_' + singleCanton.Canton).classList.add('area--risk-' + risk.className);
+  document.getElementById('area_' + singleCanton.Canton).setAttribute('class', 'area area--risk-' + risk.className);
   return '<span class="risk ' + risk.className + risk.tendency + '">' + risk.symbol + formatNumber(risk.incidence) + '</span>';
 };
 
-function getRiskAndChangeDistrict(lastWeek, thisWeek, districtId) {
+/* function getRiskAndChangeDistrict(lastWeek, thisWeek, districtId) {
   var lastWeekParsed = parseInt(lastWeek.NewConfCases);
   var thisWeekParsed = parseInt(thisWeek.NewConfCases);
   var risk = getRiskClass(lastWeekParsed, thisWeekParsed, (parseInt(thisWeek.Population) / 100000));
   var svgPolygon = document.getElementById('area_' + districtId);
   if (svgPolygon) svgPolygon.classList.add('area--risk-' + risk.className);
   return '<span class="risk ' + risk.className + risk.tendency + '">' + risk.symbol + formatNumber(risk.incidence) + '</span>';
-};
+}; */
 
 function getRiskAndChangePLZ(singlePLZ) {
-  var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]) + 1;
-  var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]) + 1;
+  var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]); // + 1;
+  var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]); // + 1;
   var risk = getRiskClass(lastWeekParsed, thisWeekParsed, (parseInt(singlePLZ.Population) / 100000));
   var svgPolygon = document.getElementById('area_' + singlePLZ.PLZ);
-  if (svgPolygon) svgPolygon.classList.add('area--risk-' + risk.className);
+  if (svgPolygon) svgPolygon.setAttribute('class', 'area area--risk-' + risk.className);
   return '<span class="risk ' + risk.className + risk.tendency + '">' + risk.symbol + formatNumber(risk.incidence) + '</span>';
 };
 

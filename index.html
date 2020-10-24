@@ -35,12 +35,12 @@
         <p>Die Risiko-Ampel orientiert sich an den Kriterien des BAG für die Einstufung von Gebieten mit erhöhtem Ansteckungsrisiko.</p>
         <h3>Anzahl Neuinfektionen pro 100'000 Einwohner'innen in 14 Tagen (14-Tage-Inzidenz)</h3>
         <ul class="legend">
-          <li><span class="risk low">&nbsp;</span> bis 60: <strong>mässiges Ansteckungsrisiko</strong></li>
-          <li><span class="risk medium">&nbsp;</span> über 60 bis 120: <strong>erhöhtes Ansteckungsrisiko</strong></li>
-          <li><span class="risk high">&nbsp;</span> über 120 bis 240: <strong>hohes Ansteckungsrisiko</strong></li>
-          <li><span class="risk higher">&nbsp;</span> über 240 bis 480: <strong>sehr hohes Ansteckungsrisiko</strong></li>
-          <li><span class="risk highest">&nbsp;</span> über 480 bis 960: <strong>äussert hohes Ansteckungsrisiko</strong></li>
-          <li><span class="risk extreme">&nbsp;</span> über 960: <strong>extrem hohes Ansteckungsrisiko</strong></li>
+          <li><span class="risk low">&nbsp;</span> <span>bis 60: <strong>mässiges Ansteckungsrisiko</strong></span></li>
+          <li><span class="risk medium">&nbsp;</span> <span>über 60 bis 120: <strong>erhöhtes Ansteckungsrisiko</strong></span></li>
+          <li><span class="risk high">&nbsp;</span> <span>über 120 bis 240: <strong>hohes Ansteckungsrisiko</strong></span></li>
+          <li><span class="risk higher">&nbsp;</span> <span>über 240 bis 480: <strong>sehr hohes Ansteckungsrisiko</strong></span></li>
+          <li><span class="risk highest">&nbsp;</span> <span>über 480 bis 960: <strong>äussert hohes Ansteckungsrisiko</strong></span></li>
+          <li><span class="risk extreme">&nbsp;</span> <span>über 960: <strong>extrem hohes Ansteckungsrisiko</strong></span></li>
         </ul>
       </article>
     </header>
@@ -49,15 +49,19 @@
         <h2 class="flag flag--CH">Schweiz</h2>
       </header>
       <h3 class="source">Gemäss Daten <span id="ch_source__name" class="source__name"></span> vom <span id="ch_source__updated" class="source__updated"></span></h3>
+      <div class="period">
+        <button type="button" class="period__button period__button--prev-week">«</button>
+        <button type="button" class="period__button period__button--prev-day">‹</button>
+        <p id="canton_period__dates" class="period__dates"></p>
+        <button type="button" class="period__button period__button--next-day" disabled="disabled">›</button>
+        <button type="button" class="period__button period__button--next-week" disabled="disabled">»</button>
+      </div>
       <div id="loadingspinner">Lade Daten...<br/><div class="lds-ring"><div></div><div></div><div></div><div></div></div></div>
       <div id="loaded"></div>
     </section>
     <section id="cantons">
-      <header>
-        <h2>Nach Kanton</h2>
-      </header>
       <article id="latest">
-        <h3 class="period">Letzte 2 Wochen <span id="canton_period__dates" class="period__dates"></span></h3>
+        <h3>Nach Kanton</h3>
         <div class="map">
           <svg class="map__svg" id="map_cantons" width="960" height="600"></svg>
         </div>
@@ -92,36 +96,17 @@
         <h2 class="flag flag--ZH">Kanton Zürich</h2>
       </header>
       <h3 class="source">Gemäss Daten der Gesundheitsdirektion vom <span id="zh_source__updated" class="source__updated"></span></h3>
-    </section>
-    <section id="districts">
-      <header>
-        <h2>Nach Bezirk</h2>
-      </header>
-      <article>
-        <h3 class="period"><span id="district_period__dates" class="period__dates"></span></h3>
-        <div class="svg-group">
-          <div class="map">
-            <svg class="map__svg" id="map_districts" width="460" height="460"></svg>
-          </div>
-          <table id="confirmed">
-            <thead>
-              <tr>
-                <th>Bezirk</th>
-                <th colspan="2">Neuinfektionen</th>
-                <th>pro 100k</th>
-              </tr>
-            </thead>
-            <tbody id="districtTable"></tbody>
-          </table>
-        </div>
-      </article>
+      <div class="period">
+        <button type="button" class="period__button period__button--prev-week">«</button>
+        <button type="button" class="period__button period__button--prev-day">‹</button>
+        <p id="zip_period__dates" class="period__dates"></p>
+        <button type="button" class="period__button period__button--next-day" disabled="disabled">›</button>
+        <button type="button" class="period__button period__button--next-week" disabled="disabled">»</button>
+      </div>
     </section>
     <section id="zipcodes">
-      <header>
-        <h2>Nach Postleitzahl</h2>
-      </header>
       <article>
-        <h3 class="period">Letzte 2 Wochen <span id="zip_period__dates" class="period__dates"></span></h3>
+        <h3>Nach Postleitzahl</h3>
         <div class="svg-group">
           <div class="map">
             <svg class="map__svg" id="map_zipcodes" width="460" height="460"></svg>
@@ -140,6 +125,7 @@
             </table>
           </div>
         </div>
+        <p class="notes">Für die Inzidenz-Karte wird der tiefere Wert der Prävalenzstufe angenommen. Die tatsächliche Inzidenz kann höher liegen, speziell in Postleitzahlkreisen mit wenig Einwohner'innen.</p>
       </article>
     </section>
   </main>
