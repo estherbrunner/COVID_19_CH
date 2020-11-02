@@ -300,16 +300,12 @@ table img {
 		padding-bottom: 0px;
 	}
 }
-.left {
-  text-align: left !important;
-  white-space: nowrap;
-}
 h2, h3 {
 	margin-bottom: 1rem;
 	font-size: 1.125rem;
 }
 #plztable {
-	margin-right: 0;
+	margin: 0;
 }
 .tableFixHead          { overflow-y: auto; height: 350px; flex: 1 0; width: 100%; margin-left: 1rem; }
 .tableFixHead thead th { position: sticky; top: 0; background-color: var(--color-background); border-top-width: 0; }
@@ -317,13 +313,11 @@ h2, h3 {
   font-size: 0.75rem; 
 }
 #confirmed_1 td:nth-child(1),
-#confirmed_2 td:nth-child(1) {
-	width: 50%;
-}
+#confirmed_2 td:nth-child(1),
 #plztable th:nth-child(2),
 #plztable td:nth-child(2) {
+	width: 50%;
 	text-align: left;
-	width: 40%;
 }
 .canvas-dummy {
 	overflow-x: scroll;

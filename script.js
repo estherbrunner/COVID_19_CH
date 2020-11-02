@@ -797,7 +797,7 @@ function drawPLZTable() {
     tr.id = 'row_' + plz;
     tr.className = 'row';
     tr.setAttribute('data-id', plz);
-    var changeString = '-';
+    var changeString = '';
     var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]); // + 1;
     var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]); // + 1;
     if (plz.length > 4) {
@@ -874,7 +874,7 @@ function getRiskObject(casesLastWeek, casesThisWeek, population) {
  * @param {string}
  */
 function getTendencyLabel(change) {
-  if (change >= 100) return 'sehr schnell steigend';
+  if (change >= 100) return 'unkontrolliert steigend';
   else if (change >= 50) return 'sehr schnell steigend';
   else if (change >= 25) return 'schnell steigend';
   else if (change >= 10) return 'steigend';
