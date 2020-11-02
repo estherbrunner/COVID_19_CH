@@ -32,18 +32,103 @@
         <h2>Legende</h2>
       </header>
       <article>
-        <p>Die Risiko-Ampel orientiert sich an den Kriterien des BAG für die Einstufung von Gebieten mit erhöhtem Ansteckungsrisiko.</p>
-        <h3>Anzahl Neuinfektionen pro 100'000 Einwohner'innen in 14 Tagen (14-Tage-Inzidenz)</h3>
-        <ul class="legend">
-          <li><span class="risk low">&nbsp;</span> <span>bis 60: <strong>mässiges Ansteckungsrisiko</strong></span></li>
-          <li><span class="risk medium">&nbsp;</span> <span>über 60 bis 120: <strong>erhöhtes Ansteckungsrisiko</strong></span></li>
-          <li><span class="risk high">&nbsp;</span> <span>über 120 bis 240: <strong>hohes Ansteckungsrisiko</strong></span></li>
-          <li><span class="risk higher">&nbsp;</span> <span>über 240 bis 480: <strong>sehr hohes Ansteckungsrisiko</strong></span></li>
-          <li><span class="risk highest">&nbsp;</span> <span>über 480 bis 960: <strong>äussert hohes Ansteckungsrisiko</strong></span></li>
-          <li><span class="risk extreme">&nbsp;</span> <span>über 960: <strong>extrem hohes Ansteckungsrisiko</strong></span></li>
-        </ul>
+        <p>Die Risiko-Einstufung erfolgt nach Inzidenz, das heisst der Anzahl bestätigter Neuinfektionen pro 100'000 Einwohner'innen im angegebenen Zeitraum.</p>
+        <p>Nach dem ursprünglichen Kriterium des BAG wird ab einer 14-Tage-Inzidenz vom 60 von einem Gebiet mit erhöhtem Infektionsrisiko gesprochen.</p>
+        <p>Bei der höchsten Stufe haben sich innerhalb von einer Woche mindestens 1% (oder innerhalb vom zwei Wochen 2%) der Bevölkerung mit Covid-19 angesteckt.</p>
+        <div class="table-group">
+          <div>
+            <h3>Inzidenz</h3>
+            <table class="legend">
+              <thead>
+                <tr>
+                  <th scope="col">7 Tage</th>
+                  <th scope="col">14 Tage</th>
+                  <th scope="col">Ansteckungsrisiko</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="cell cell--moderate"><strong>bis 30</strong></td>
+                  <td class="cell cell--moderate"><strong>bis 60</strong></td>
+                  <td>mässig</td>
+                </tr>
+                <tr>
+                  <td class="cell cell--medium"><strong>über 30</strong></td>
+                  <td class="cell cell--medium"><strong>über 60</strong></td>
+                  <td>erhöht</td>
+                </tr>
+                <tr>
+                  <td class="cell cell--high"><strong>über 60</strong></td>
+                  <td class="cell cell--high"><strong>über 120</strong></td>
+                  <td>hoch</td>
+                </tr>
+                <tr>
+                  <td class="cell cell--higher"><strong>über 120</strong></td>
+                  <td class="cell cell--higher"><strong>über 240</strong></td>
+                  <td>sehr hoch</td>
+                </tr>
+                <tr>
+                  <td class="cell cell--highest"><strong>über 240</strong></td>
+                  <td class="cell cell--highest"><strong>über 480</strong></td>
+                  <td>äussert hoch</td>
+                </tr>
+                <tr>
+                  <td class="cell cell--extreme"><strong>über 480</strong></td>
+                  <td class="cell cell--extreme"><strong>über 960</strong></td>
+                  <td>extrem hoch</td>
+                </tr>
+                <tr>
+                  <td class="cell cell--terrible"><strong>über 960</strong></td>
+                  <td class="cell cell--terrible"><strong>über 1'920</strong></td>
+                  <td>entsetzlich hoch</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h3>Differenz zur Vorwoche</h3>
+            <table class="legend">
+              <tr>
+                <th scope="col">Veränderung</th>
+                <th scope="col">Tendenz</th>
+              </tr>
+              <tr>
+                <td class="cell cell--decreasing-faster"><strong>weniger als -50%</strong></td>
+                <td>sehr schnell sinkend</td>
+              </tr>
+              <tr>
+                <td class="cell cell--decreasing-fast"><strong>weniger als -25%</strong></td>
+                <td>schnell sinkend</td>
+              </tr>
+              <tr>
+                <td class="cell cell--decreasing"><strong>weniger als -10%</strong></td>
+                <td>sinkend</td>
+              </tr>
+              <tr>
+                <td class="cell cell--stable"><strong>zwischen +/-10%</strong></td>
+                <td>gleichbleibend</td>
+              </tr>
+              <tr>
+                <td class="cell cell--increasing"><strong>mehr als +10%</strong></td>
+                <td>ansteigend</td>
+              </tr>
+              <tr>
+                <td class="cell cell--increasing-fast"><strong>mehr als +25%</strong></td>
+                <td>schnell ansteigend</td>
+              </tr>
+              <tr>
+                <td class="cell cell--increasing-faster"><strong>mehr als +50%</strong></td>
+                <td>sehr schnell ansteigend</td>
+              </tr>
+              <tr>
+                <td class="cell cell--increasing-fastest"><strong>mehr als +100%</strong></td>
+                <td>unkontrolliert ansteigend</td>
+              </tr>
+            </table>
+          </div>
+        </div>
       </article>
-    </header>
+    </section>
     <section id="index">
 			<header>
         <h2 class="flag flag--CH">Schweiz</h2>
@@ -70,8 +155,9 @@
             <thead>
               <tr>
                 <th>Kanton</th>
-                <th colspan="2">Neuinfektionen</th>
-                <th>pro 100k</th>
+                <th>7 Tage</th>
+                <th>14 Tage</th>
+                <th>Tendenz</th>
               </tr>
             </thead>
             <tbody id="confirmed_1">
@@ -81,8 +167,9 @@
             <thead>
               <tr>
                 <th>Kanton</th>
-                <th colspan="2">Neuinfektionen</th>
-                <th>pro 100k</th>
+                <th>7 Tage</th>
+                <th>14 Tage</th>
+                <th>Tendenz</th>
               </tr>
             </thead>
             <tbody id="confirmed_2">
@@ -117,8 +204,9 @@
                 <tr>
                   <th>PLZ</th>
                   <th>Ort</th>
-                  <th colspan="2">Neuinfektionen</th>
-                  <th>pro 100k</th>
+                  <th>7 Tage</th>
+                  <th>14 Tage</th>
+                  <th>Tendenz</th>
                 </tr>
               </thead>
               <tbody id="plzbody"></tbody>

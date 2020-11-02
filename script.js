@@ -339,20 +339,19 @@ function drawCantonTable() {
     span.appendChild(document.createTextNode(names[cantonData.Canton]));
     td.appendChild(span);
     tr.appendChild(td);
-    /* td = document.createElement("td");
-    td.appendChild(document.createTextNode(formatDate(new Date(cantonData.Date))));
-    tr.appendChild(td); */
+    var risk = getRiskObject(cantonData.OldConfCases_7days, cantonData.NewConfCases_7days, cantonData.Population);
     td = document.createElement("td");
-    td.className = 'cell cell--last-week';
-    td.appendChild(document.createTextNode(formatNumber(cantonData.OldConfCases_7days)));
+    td.className = 'cell cell--' + risk.className_thisWeek;
+    td.innerHTML = formatNumber(cantonData.NewConfCases_7days) + '<br><strong>' + formatNumber(risk.incidence_thisWeek) + '</strong>';
     tr.appendChild(td);
     td = document.createElement("td");
-    td.className = 'cell cell--this-week';
-    td.appendChild(document.createTextNode(formatNumber(cantonData.NewConfCases_7days)));
+    td.className = 'cell cell--' + risk.className;
+    td.innerHTML = formatNumber(cantonData.OldConfCases_7days + cantonData.NewConfCases_7days) + '<br><strong>' + formatNumber(risk.incidence) + '</strong>';
     tr.appendChild(td);
     td = document.createElement("td");
-    td.className = 'cell cell--risk';
-    td.innerHTML = getRiskAndChangeCanton(cantonData);
+    td.className = 'cell cell--' + risk.tendency;
+    td.innerHTML = '<strong>' + (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%</strong>';
+    document.getElementById('area_' + cantonData.Canton).setAttribute('class', 'area area--risk-' + risk.className);
     tr.addEventListener('click', function(e) {
       var id = e.currentTarget.getAttribute('data-id');
       var evt = new MouseEvent('click');
@@ -449,42 +448,34 @@ function drawBarChart(place, filteredData, sectionId) {
     article.appendChild(p);
   }
 
-  var cards = document.createElement('div');
+  var card = document.createElement('table');
   var casesLastWeek = filteredData[filteredData.length - 8].NewConfCases_7days;
   var casesThisWeek = filteredData[filteredData.length - 1].NewConfCases_7days;
-  var risk = getRiskClass(casesLastWeek, casesThisWeek, population[place]);
+  var risk = getRiskObject(casesLastWeek, casesThisWeek, population[place]);
+  var riskLabel = getRiskLabel(risk.incidence / 2);
+  var tendencyLabel = getTendencyLabel(risk.percentChange);
 
-  var riskLabel = '';
-  if (risk.incidence >= 960) riskLabel = 'extrem hohes Risiko';
-  else if (risk.incidence >= 480) riskLabel = 'äusserst hohes Risiko';
-  else if (risk.incidence >= 240) riskLabel = 'sehr hohes Risiko';
-  else if (risk.incidence >= 120) riskLabel = 'hohes Risiko';
-  else if (risk.incidence >= 60) riskLabel = 'erhöhtes Risiko';
-  else riskLabel = 'mässiges Risiko';
-
-  var tendencyLabel = '';
-  if (risk.percentChange >= 100) tendencyLabel = 'sehr schnell steigend';
-  else if (risk.percentChange >= 50) tendencyLabel = 'schnell steigend';
-  else if (risk.percentChange >= 10) tendencyLabel = 'steigend';
-  else if (risk.percentChange <= -100) tendencyLabel = 'sehr schnell sinkend';
-  else if (risk.percentChange <= -50) tendencyLabel = 'schnell sinkend';
-  else if (risk.percentChange <= -10) tendencyLabel = 'sinkend';
-  else tendencyLabel = 'gleichbleibend';
-
-  cards.className = 'figure figure--' + risk.className;
-  cards.innerHTML = '<p class="figure__card figure__card--absolute"><span class="figure__label">Neuinfektionen:</span>' +
-    '<span class="figure__number"> ' + formatNumber(casesLastWeek + casesThisWeek) + ' </span>' +
-    '<span class="figure__label figure__label--centered"> in 2 Wochen </span>' +
-    '<span class="figure__footer"><span class="figure__label figure__label--left figure__label--' + risk.className_lastWeek +
-    '">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 14].Date)) + ': <strong>' + formatNumber(casesLastWeek) + '</strong></span>' +
-    '<span class="figure__label figure__label--right figure__label--' + risk.className_thisWeek +
-    '">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 7].Date)) + ': <strong>' + formatNumber(casesThisWeek) + '</strong></span></span></p>' +
-    '<p class="figure__card figure__card--relative"><span class="figure__label">14-Tage-Inzidenz:</span>' +
-    '<span class="figure__number"> ' + formatNumber(risk.incidence) + ' </span>' +
-    '<span class="figure__label figure__label--centered"> ' + riskLabel + ' </span>' +
-    '<span class="figure_footer"><span class="figure__label figure__label--left">Tendenz: ' + tendencyLabel +
-    ' (' + risk.symbol + '<strong>' + (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%</strong>)</span></span></p>';
-  article.appendChild(cards);
+  card.className = 'figure figure--' + risk.className;
+  card.innerHTML = '<thead><tr>'
+    + '<th class="figure__row-header" scope="row">Zeitraum</th>'
+    + '<th class="figure__column-header cell--' + risk.className_lastWeek + '" scope="col">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 14].Date)) + '</th>'
+    + '<th class="figure__column-header cell--' + risk.className_thisWeek + '" scope="col">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 7].Date)) + '</th>'
+    + '<th class="figure__column-header" scope="col">Letzte 2 Wochen</th>'
+    + '</tr></thead><tbody><tr>'
+    + '<th class="figure__row-header" scope="row">Neuinfektionen</th>'
+    + '<td class="cell cell--' + risk.className_lastWeek + '">' + formatNumber(casesLastWeek) + '</td>'
+    + '<td class="cell cell--' + risk.className_thisWeek + '">' + formatNumber(casesThisWeek) + '</td>'
+    + '<td class="cell">' + formatNumber(casesLastWeek + casesThisWeek) + '</td>'
+    + '</tr><tr>'
+    + '<th class="figure__row-header" scope="row">Inzidenz</th>'
+    + '<td class="cell cell--' + risk.className_lastWeek + '"><strong>' + formatNumber(risk.incidence_lastWeek) + '</strong></td>'
+    + '<td class="cell cell--' + risk.className_thisWeek + '"><strong>' + formatNumber(risk.incidence_thisWeek) + '</strong></td>'
+    + '<td rowspan="2" class="cell"><strong class="figure__number">' + formatNumber(risk.incidence) + '</strong><br>' + riskLabel + '</td>'
+    + '</tr><tr>'
+    + '<th class="figure__row-header" scope="row">Tendenz</th>'
+    + '<td colspan="2"  class="cell cell--' + risk.tendency + '"><strong>' + risk.symbol + (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%</strong><br> ' + tendencyLabel + '</td>'
+    + '</tr></tbody>';
+  article.appendChild(card);
   var div = document.createElement("div");
   div.className = "canvas-dummy";
   div.id = "container_" + place;
@@ -509,21 +500,23 @@ function drawBarChart(place, filteredData, sectionId) {
   });
   var averageColors = filteredData.map(function(d) {
     var incidence = 14 * d.NewConfCases_7dayAverage / population[place];
-    if (incidence >= 960) return '#45239f'; // dark blue
-    else if (incidence >= 480) return '#842b9e'; // purple
-    else if (incidence >= 240) return '#b33c7c'; // pink
-    else if (incidence >= 120) return '#d4594b'; // red
-    else if (incidence >= 60) return '#da8417'; // orange
-    return '#beb520'; // green
+    if (incidence >= 1920) return '#4a25a2'; // dark blue
+    else if (incidence >= 960) return '#7d2a9f'; // purple
+    else if (incidence >= 480) return '#a63587'; // fuchsia
+    else if (incidence >= 240) return '#c54860'; // pink
+    else if (incidence >= 120) return '#d56534'; // red
+    else if (incidence >= 60) return '#d28a02'; // orange
+    return '#b6b21d'; // green
   });
   var casesColors = filteredData.map(function(d) {
     var incidence = 14 * d.NewConfCases_1day / population[place];
-    if (incidence >= 960) return inDarkMode() ? '#170541' : '#847fbb'; // dark blue
-    else if (incidence >= 480) return inDarkMode() ? '#390f45' : '#bb8bc8'; // purple
-    else if (incidence >= 240) return inDarkMode() ? '#561d3b' : '#e596ba'; // pink
-    else if (incidence >= 120) return inDarkMode() ? '#6f312a' : '#ffa89b'; // red
-    else if (incidence >= 60) return inDarkMode() ? '#7b4f1b' : '#ffc483'; // orange
-    return inDarkMode() ? '#75722a' : '#e6e38d'; // green
+    if (incidence >= 1920) return inDarkMode() ? '#230559' : '#786dba'; // dark blue
+    else if (incidence >= 960) return inDarkMode() ? '#440e59' : '#aa75c1'; // purple
+    else if (incidence >= 480) return inDarkMode() ? '#601a4d' : '#d37db5'; // fuchsia
+    else if (incidence >= 240) return inDarkMode() ? '#792a39' : '#f08a98'; // pink
+    else if (incidence >= 120) return inDarkMode() ? '#894121' : '#fc9f76'; // red
+    else if (incidence >= 60) return inDarkMode() ? '#8c5e0f' : '#f5bb64'; // orange
+    return inDarkMode() ? '#807e22' : '#dad971'; // green
   });
 
   new Chart(canvas.id, {
@@ -804,18 +797,23 @@ function drawPLZTable() {
     tr.id = 'row_' + plz;
     tr.className = 'row';
     tr.setAttribute('data-id', plz);
-    var riskAndChange = '-';
+    var changeString = '-';
+    var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]); // + 1;
+    var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]); // + 1;
     if (plz.length > 4) {
       name = plz;
       plz = '&nbsp;';
     } else {
-      riskAndChange = getRiskAndChangePLZ(singlePLZ);
+      var risk = getRiskObject(lastWeekParsed, thisWeekParsed, (parseInt(singlePLZ.Population) / 100000));
+      var svgPolygon = document.getElementById('area_' + singlePLZ.PLZ);
+      if (svgPolygon) svgPolygon.setAttribute('class', 'area area--risk-' + risk.className);
+      changeString = (isFinite(risk.percentChange) ? (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%' : '');
     }
     tr.innerHTML = '<td class="cell cell--id">' + plz + '</td>'
       + '<td class="cell cell--name">' + name + '</td>'
-      + '<td class="cell cell--last-week">' + singlePLZ.OldConfCases_7days + '</td>'
-      + '<td class="cell cell--this-week">' + singlePLZ.NewConfCases_7days + '</td>'
-      + '<td class="cell cell--risk">' + riskAndChange + '</td>';
+      + '<td class="cell cell--' + (risk ? risk.className_thisWeek : 'unknown') + '">' + singlePLZ.NewConfCases_7days + '<br><strong>' + formatNumber(risk.incidence_thisWeek) + '</strong></td>'
+      + '<td class="cell cell--' + (risk ? risk.className : 'unknown') + '">' + formatNumber(lastWeekParsed + thisWeekParsed) + '+<br/><strong>' + formatNumber(risk.incidence) + '</strong></td>'
+      + '<td class="cell cell--' + (risk ? risk.tendency : 'unknown') + '"><strong>' + changeString + '</strong></td>';
     tr.addEventListener('click', function(e) {
       var id = e.currentTarget.getAttribute('data-id');
       var evt = new MouseEvent('click');
@@ -825,29 +823,14 @@ function drawPLZTable() {
   }
 }
 
-function getRiskAndChangeCanton(singleCanton) {
-  var risk = getRiskClass(singleCanton.OldConfCases_7days, singleCanton.NewConfCases_7days, singleCanton.Population);
-  document.getElementById('area_' + singleCanton.Canton).setAttribute('class', 'area area--risk-' + risk.className);
-  return '<span class="risk ' + risk.className + risk.tendency + '">' + risk.symbol + formatNumber(risk.incidence) + '</span>';
-};
-
 /* function getRiskAndChangeDistrict(lastWeek, thisWeek, districtId) {
   var lastWeekParsed = parseInt(lastWeek.NewConfCases);
   var thisWeekParsed = parseInt(thisWeek.NewConfCases);
-  var risk = getRiskClass(lastWeekParsed, thisWeekParsed, (parseInt(thisWeek.Population) / 100000));
+  var risk = getRiskObject(lastWeekParsed, thisWeekParsed, (parseInt(thisWeek.Population) / 100000));
   var svgPolygon = document.getElementById('area_' + districtId);
   if (svgPolygon) svgPolygon.classList.add('area--risk-' + risk.className);
   return '<span class="risk ' + risk.className + risk.tendency + '">' + risk.symbol + formatNumber(risk.incidence) + '</span>';
 }; */
-
-function getRiskAndChangePLZ(singlePLZ) {
-  var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]); // + 1;
-  var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]); // + 1;
-  var risk = getRiskClass(lastWeekParsed, thisWeekParsed, (parseInt(singlePLZ.Population) / 100000));
-  var svgPolygon = document.getElementById('area_' + singlePLZ.PLZ);
-  if (svgPolygon) svgPolygon.setAttribute('class', 'area area--risk-' + risk.className);
-  return '<span class="risk ' + risk.className + risk.tendency + '">' + risk.symbol + formatNumber(risk.incidence) + '</span>';
-};
 
 /**
  * Calculate risk
@@ -856,54 +839,98 @@ function getRiskAndChangePLZ(singlePLZ) {
  * @param {number} casesThisWeek - sum of new cases 7 to 1 days ago
  * @param {number} population - in 100'000
  */
-function getRiskClass(casesLastWeek, casesThisWeek, population) {
+function getRiskObject(casesLastWeek, casesThisWeek, population) {
   var incidence_14day = Math.round((casesLastWeek + casesThisWeek) / population);
   var incidence_7dayOld = Math.round(casesLastWeek / population);
   var incidence_7day = Math.round(casesThisWeek / population);
 
+  var changePercentage = Math.round(100 * ((casesThisWeek / casesLastWeek) - 1));
   var changeSymbol = '';
-  if (casesThisWeek > (1.1 * casesLastWeek)) changeSymbol = '&#8599;&#xFE0E; '; // more than 10% increase
-  else if (casesThisWeek < (0.9 * casesLastWeek)) changeSymbol = '&#8600;&#xFE0E; '; // more than 10% decrease
+  if (changePercentage >= 10) changeSymbol = '&#8599;&#xFE0E; '; // at least 10% increase
+  else if (changePercentage <= -10) changeSymbol = '&#8600;&#xFE0E; '; // at least 10% decrease
+  var tendencyClass = getTendencyClass(changePercentage);
 
-  var riskClass;
-  if (incidence_14day >= 960) riskClass = 'extreme';
-  else if (incidence_14day >= 480) riskClass = 'highest';
-  else if (incidence_14day >= 240) riskClass = 'higher';
-  else if (incidence_14day >= 120) riskClass = 'high';
-  else if (incidence_14day >= 60) riskClass = 'medium';
-  else if (incidence_14day >= 30) riskClass = 'low';
-  else riskClass = 'lower';
-
-  var riskClass_lastWeek;
-  if (incidence_7dayOld >= 480) riskClass_lastWeek = 'extreme';
-  else if (incidence_7dayOld >= 240) riskClass_lastWeek = 'highest';
-  else if (incidence_7dayOld >= 120) riskClass_lastWeek = 'higher';
-  else if (incidence_7dayOld >= 60) riskClass_lastWeek = 'high';
-  else if (incidence_7dayOld >= 30) riskClass_lastWeek = 'medium';
-  else if (incidence_7dayOld >= 15) riskClass_lastWeek = 'low';
-  else riskClass_lastWeek = 'lower';
-
-  var riskClass_thisWeek;
-  if (incidence_7day >= 480) riskClass_thisWeek = 'extreme';
-  else if (incidence_7day >= 240) riskClass_thisWeek = 'highest';
-  else if (incidence_7day >= 120) riskClass_thisWeek = 'higher';
-  else if (incidence_7day >= 60) riskClass_thisWeek = 'high';
-  else if (incidence_7day >= 30) riskClass_thisWeek = 'medium';
-  else if (incidence_7day >= 15) riskClass_thisWeek = 'low';
-  else riskClass_thisWeek = 'lower';
-
-  var tendencyClass = '';
-  if (riskClass_lastWeek !== riskClass_thisWeek) tendencyClass = ' ' + riskClass_lastWeek + '2' + riskClass_thisWeek;
+  var riskClass = getRiskClass(incidence_14day / 2);
+  var riskClass_lastWeek = getRiskClass(incidence_7dayOld);
+  var riskClass_thisWeek = getRiskClass(incidence_7day);
 
   return {
     incidence: incidence_14day,
+    incidence_thisWeek: incidence_7day,
+    incidence_lastWeek: incidence_7dayOld,
     symbol: changeSymbol,
-    percentChange: Math.round(100 * ((casesThisWeek / casesLastWeek) - 1)),
+    percentChange: changePercentage,
     className: riskClass,
     className_thisWeek: riskClass_thisWeek,
     className_lastWeek: riskClass_lastWeek,
     tendency: tendencyClass
   };
+}
+
+/**
+ * Get human readable interpretation of change percentage
+ * 
+ * @param {number} change - change percentage
+ * @param {string}
+ */
+function getTendencyLabel(change) {
+  if (change >= 100) return 'sehr schnell steigend';
+  else if (change >= 50) return 'sehr schnell steigend';
+  else if (change >= 25) return 'schnell steigend';
+  else if (change >= 10) return 'steigend';
+  else if (change <= -50) return 'sehr schnell sinkend';
+  else if (change <= -25) return 'schnell sinkend';
+  else if (change <= -10) return 'sinkend';
+  else return 'gleichbleibend';
+}
+
+/**
+ * Get CSS class for change percentage
+ * 
+ * @param {number} change - change percentage
+ * @param {string}
+ */
+function getTendencyClass(change) {
+  if (change >= 100) return 'increasing-fastest';
+  else if (change >= 50) return 'increasing-faster';
+  else if (change >= 25) return 'increasing-fast';
+  else if (change >= 10) return 'increasing';
+  else if (change <= -50) return 'decreasing-faster';
+  else if (change <= -25) return 'decreasing-fast';
+  else if (change <= -10) return 'decreasing';
+  else return 'stable';
+}
+
+/**
+ * Get human readable interpretation of risk level
+ * 
+ * @param {number} incidence - 7 day incidence
+ * @returns {string}
+ */
+function getRiskLabel(incidence) {
+  if (incidence >= 960) return 'entsetzlich hohes Risiko';
+  else if (incidence >= 480) return 'extrem hohes Risiko';
+  else if (incidence >= 240) return 'äusserst hohes Risiko';
+  else if (incidence >= 120) return 'sehr hohes Risiko';
+  else if (incidence >= 60) return 'hohes Risiko';
+  else if (incidence >= 30) return 'erhöhtes Risiko';
+  else return 'mässiges Risiko';
+}
+
+/**
+ * Get CSS class for risk level
+ * 
+ * @param {number} incidence - 7 day incidence
+ * @returns {string} - classname 
+ */
+function getRiskClass(incidence) {
+  if (incidence >= 960) return 'terrible';
+  else if (incidence >= 480) return 'extreme';
+  else if (incidence >= 240) return 'highest';
+  else if (incidence >= 120) return 'higher';
+  else if (incidence >= 60) return 'high';
+  else if (incidence >= 30) return 'medium';
+  else return 'moderate';
 }
 
 /**
