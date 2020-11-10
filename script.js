@@ -230,21 +230,6 @@ function getCantons() {
     });
 }
 
-/* function getDistricts() {
-  var url = 'https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_bezirke/fallzahlen_kanton_ZH_bezirk.csv';
-  d3.queue()
-    .defer(d3.json, "https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_bezirke/BezirkeAlleSee_gen_epsg4326_F_KTZH_2020.json")
-    .defer(d3.csv, url)
-    .await(function(error, topo, csvdata) {
-      var projection = d3.geoMercator()
-        .center([8.675, 47.43]) // GPS of location to zoom on
-        .scale(33000);          // This is like the zoom
-      drawMap('#map_districts', topo, projection, 'BEZ_ID', function() {
-        lastBezirksData(csvdata);
-      });
-    });
-} */
-
 function getZIP() {
   var url = 'https://raw.githubusercontent.com/openZH/covid_19/master/fallzahlen_plz/fallzahlen_kanton_ZH_plz.csv';
   d3.queue()
@@ -350,7 +335,7 @@ function drawCantonTable() {
     tr.appendChild(td);
     td = document.createElement("td");
     td.className = 'cell cell--' + risk.tendency;
-    td.innerHTML = '<strong>' + (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%</strong>';
+    td.innerHTML = '<strong>' + risk.changeString + '</strong>';
     document.getElementById('area_' + cantonData.Canton).setAttribute('class', 'area area--risk-' + risk.className);
     tr.addEventListener('click', function(e) {
       var id = e.currentTarget.getAttribute('data-id');
@@ -453,7 +438,7 @@ function drawBarChart(place, filteredData, sectionId) {
   var casesThisWeek = filteredData[filteredData.length - 1].NewConfCases_7days;
   var risk = getRiskObject(casesLastWeek, casesThisWeek, population[place]);
   var riskLabel = getRiskLabel(risk.incidence / 2);
-  var tendencyLabel = getTendencyLabel(risk.percentChange);
+  var tendencyLabel = isNaN(risk.changePercentage) ? '' : getTendencyLabel(risk.changePercentage);
 
   card.className = 'figure figure--' + risk.className;
   card.innerHTML = '<thead><tr>'
@@ -473,7 +458,7 @@ function drawBarChart(place, filteredData, sectionId) {
     + '<td rowspan="2" class="cell"><strong class="figure__number">' + formatNumber(risk.incidence) + '</strong><br>' + riskLabel + '</td>'
     + '</tr><tr>'
     + '<th class="figure__row-header" scope="row">Tendenz</th>'
-    + '<td colspan="2"  class="cell cell--' + risk.tendency + '"><strong>' + risk.symbol + (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%</strong><br> ' + tendencyLabel + '</td>'
+    + '<td colspan="2"  class="cell cell--' + risk.tendency + '"><strong>' + risk.symbol + risk.changeString + '</strong><br> ' + tendencyLabel + '</td>'
     + '</tr></tbody>';
   article.appendChild(card);
   var div = document.createElement("div");
@@ -506,7 +491,8 @@ function drawBarChart(place, filteredData, sectionId) {
     else if (incidence >= 240) return '#c54860'; // pink
     else if (incidence >= 120) return '#d56534'; // red
     else if (incidence >= 60) return '#d28a02'; // orange
-    return '#b6b21d'; // green
+    else if (incidence >= 30) return '#b6b21d'; // yellow
+    return '#7fd560'; // green
   });
   var casesColors = filteredData.map(function(d) {
     var incidence = 14 * d.NewConfCases_1day / population[place];
@@ -516,7 +502,8 @@ function drawBarChart(place, filteredData, sectionId) {
     else if (incidence >= 240) return inDarkMode() ? '#792a39' : '#f08a98'; // pink
     else if (incidence >= 120) return inDarkMode() ? '#894121' : '#fc9f76'; // red
     else if (incidence >= 60) return inDarkMode() ? '#8c5e0f' : '#f5bb64'; // orange
-    return inDarkMode() ? '#807e22' : '#dad971'; // green
+    else if (incidence >= 30) return inDarkMode() ? '#807e22' : '#dad971'; // yellow
+    return inDarkMode() ? '#649c4f' : '#b3f29a'; // green
   });
 
   new Chart(canvas.id, {
@@ -725,56 +712,6 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
   if (typeof callback === 'function') callback();
 }
 
-/* function lastBezirksData(data) {
-  var tbody = document.getElementById("districtTable");
-  for (var i = 101; i <= 112; i++) {
-    var filtered = data.filter(function(d) { if (d.DistrictId == i) return d; } );
-    var thisWeek = filtered[filtered.length - 1];
-    var lastWeek = filtered[filtered.length - 2];
-
-    if (i == 101) {
-      var dateOfWeek = getDateOfISOWeek(lastWeek.Week, lastWeek.Year);
-      var endDay = new Date(dateOfWeek);
-      endDay.setDate(endDay.getDate() + 13);
-      var text = `Wochen ${lastWeek.Week} und ${thisWeek.Week} (${formatDate(dateOfWeek)} – ${formatDate(endDay)})`;
-      var period = document.getElementById('district_period__dates');
-      period.innerHTML = text;
-    }
-
-    var tr = document.createElement('tr');
-    tr.id = 'row_' + i;
-    tr.className = 'row';
-    tr.setAttribute('data-id', i);
-    var td = document.createElement("td");
-    td.className = 'cell cell--name';
-    var span = document.createElement("span");
-    span.className = 'flag flag--' + i;
-    var text = document.createTextNode(names[i]);
-    span.appendChild(text);
-    td.appendChild(span);
-    tr.appendChild(td);
-    td = document.createElement("td");
-    td.className = 'cell cell--last-week';
-    td.appendChild(document.createTextNode(lastWeek.NewConfCases));
-    tr.appendChild(td);
-    td = document.createElement("td");
-    td.className = 'cell cell--this-week';
-    td.appendChild(document.createTextNode(thisWeek.NewConfCases));
-    tr.appendChild(td);
-    td = document.createElement("td");
-    td.className = 'cell cell--risk';
-    td.innerHTML = getRiskAndChangeDistrict(lastWeek, thisWeek, i);
-    tr.addEventListener('click', function(e) {
-      var id = e.currentTarget.getAttribute('data-id');
-      var evt = new MouseEvent('click');
-      d3.select('#area_' + id).node().dispatchEvent(evt);
-    });
-    tr.appendChild(td);
-
-    tbody.appendChild(tr);
-  }
-} */
-
 function drawPLZTable() {
   var tbody = document.getElementById("plzbody");
   var lastDate = zipDataPerDay[zipDataPerDay.length - dateOffset - 1].Date;
@@ -797,9 +734,9 @@ function drawPLZTable() {
     tr.id = 'row_' + plz;
     tr.className = 'row';
     tr.setAttribute('data-id', plz);
-    var changeString = '';
-    var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]); // + 1;
-    var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]); // + 1;
+    var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]) + 1;
+    var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]) + 1;
+    var newConfCases_14days = lastWeekParsed + thisWeekParsed;
     if (plz.length > 4) {
       name = plz;
       plz = '&nbsp;';
@@ -807,13 +744,20 @@ function drawPLZTable() {
       var risk = getRiskObject(lastWeekParsed, thisWeekParsed, (parseInt(singlePLZ.Population) / 100000));
       var svgPolygon = document.getElementById('area_' + singlePLZ.PLZ);
       if (svgPolygon) svgPolygon.setAttribute('class', 'area area--risk-' + risk.className);
-      changeString = (isFinite(risk.percentChange) ? (risk.percentChange > 0 ? '+' : '') + risk.percentChange + '%' : '');
     }
-    tr.innerHTML = '<td class="cell cell--id">' + plz + '</td>'
+    if (newConfCases_14days < 3) {
+      tr.innerHTML = '<td class="cell cell--id">' + plz + '</td>'
       + '<td class="cell cell--name">' + name + '</td>'
-      + '<td class="cell cell--' + (risk ? risk.className_thisWeek : 'unknown') + '">' + singlePLZ.NewConfCases_7days + '<br><strong>' + formatNumber(risk.incidence_thisWeek) + '</strong></td>'
-      + '<td class="cell cell--' + (risk ? risk.className : 'unknown') + '">' + formatNumber(lastWeekParsed + thisWeekParsed) + '+<br/><strong>' + formatNumber(risk.incidence) + '</strong></td>'
-      + '<td class="cell cell--' + (risk ? risk.tendency : 'unknown') + '"><strong>' + changeString + '</strong></td>';
+      + '<td class="cell">0-3</td>'
+      + '<td class="cell">0-6</td>'
+      + '<td class="cell"></td>';
+    } else {
+      tr.innerHTML = '<td class="cell cell--id">' + plz + '</td>'
+        + '<td class="cell cell--name">' + name + '</td>'
+        + '<td class="cell cell--' + (risk ? risk.className_thisWeek : 'unknown') + '">' + singlePLZ.NewConfCases_7days + '<br><strong>' + formatNumber(risk.incidence_thisWeek) + '</strong></td>'
+        + '<td class="cell cell--' + (risk ? risk.className : 'unknown') + '">' + formatNumber(newConfCases_14days - 2) + '-' + formatNumber(newConfCases_14days + 2) + '<br/><strong>' + formatNumber(risk.incidence) + '</strong></td>'
+        + '<td class="cell cell--' + (risk ? risk.tendency : 'unknown') + '"><strong>' + risk.changeString + '</strong></td>';
+    }
     tr.addEventListener('click', function(e) {
       var id = e.currentTarget.getAttribute('data-id');
       var evt = new MouseEvent('click');
@@ -823,15 +767,6 @@ function drawPLZTable() {
   }
 }
 
-/* function getRiskAndChangeDistrict(lastWeek, thisWeek, districtId) {
-  var lastWeekParsed = parseInt(lastWeek.NewConfCases);
-  var thisWeekParsed = parseInt(thisWeek.NewConfCases);
-  var risk = getRiskObject(lastWeekParsed, thisWeekParsed, (parseInt(thisWeek.Population) / 100000));
-  var svgPolygon = document.getElementById('area_' + districtId);
-  if (svgPolygon) svgPolygon.classList.add('area--risk-' + risk.className);
-  return '<span class="risk ' + risk.className + risk.tendency + '">' + risk.symbol + formatNumber(risk.incidence) + '</span>';
-}; */
-
 /**
  * Calculate risk
  * 
@@ -840,26 +775,40 @@ function drawPLZTable() {
  * @param {number} population - in 100'000
  */
 function getRiskObject(casesLastWeek, casesThisWeek, population) {
-  var incidence_14day = Math.round((casesLastWeek + casesThisWeek) / population);
+  var changePercent = NaN;
+  var changeSymbol = '';
+  var changeText = '';
+  var tendencyClass = 'na';
+  var riskClass = 'unknown';
+  var riskClass_lastWeek = 'unknown';
+  var riskClass_thisWeek = 'unknown';
+
+  var newConfCases_14days = casesLastWeek + casesThisWeek;
+  var incidence_14day = Math.round(newConfCases_14days / population);
   var incidence_7dayOld = Math.round(casesLastWeek / population);
   var incidence_7day = Math.round(casesThisWeek / population);
 
-  var changePercentage = Math.round(100 * ((casesThisWeek / casesLastWeek) - 1));
-  var changeSymbol = '';
-  if (changePercentage >= 10) changeSymbol = '&#8599;&#xFE0E; '; // at least 10% increase
-  else if (changePercentage <= -10) changeSymbol = '&#8600;&#xFE0E; '; // at least 10% decrease
-  var tendencyClass = getTendencyClass(changePercentage);
+  if (newConfCases_14days > 2 || population >= 0.05) {
+    if (incidence_14day >= 30) {
+      changePercent = Math.round(100 * ((casesThisWeek / casesLastWeek) - 1));
+      if (isFinite(changePercent)) changeText = (changePercent > 0 ? '+' : '') + changePercent + '%';
+      if (changePercent >= 10) changeSymbol = '&#8599;&#xFE0E; '; // at least 10% increase
+      else if (changePercent <= -10) changeSymbol = '&#8600;&#xFE0E; '; // at least 10% decrease
+      tendencyClass = getTendencyClass(changePercent);
+    }
 
-  var riskClass = getRiskClass(incidence_14day / 2);
-  var riskClass_lastWeek = getRiskClass(incidence_7dayOld);
-  var riskClass_thisWeek = getRiskClass(incidence_7day);
+    riskClass = getRiskClass(incidence_14day / 2);
+    riskClass_lastWeek = getRiskClass(incidence_7dayOld);
+    riskClass_thisWeek = getRiskClass(incidence_7day);
+  }
 
   return {
     incidence: incidence_14day,
     incidence_thisWeek: incidence_7day,
     incidence_lastWeek: incidence_7dayOld,
     symbol: changeSymbol,
-    percentChange: changePercentage,
+    changePercentage: changePercent,
+    changeString: changeText,
     className: riskClass,
     className_thisWeek: riskClass_thisWeek,
     className_lastWeek: riskClass_lastWeek,
@@ -914,7 +863,8 @@ function getRiskLabel(incidence) {
   else if (incidence >= 120) return 'sehr hohes Risiko';
   else if (incidence >= 60) return 'hohes Risiko';
   else if (incidence >= 30) return 'erhöhtes Risiko';
-  else return 'mässiges Risiko';
+  else if (incidence >= 15) return 'mässiges Risiko';
+  else return 'tiefes Risiko';
 }
 
 /**
@@ -930,7 +880,8 @@ function getRiskClass(incidence) {
   else if (incidence >= 120) return 'higher';
   else if (incidence >= 60) return 'high';
   else if (incidence >= 30) return 'medium';
-  else return 'moderate';
+  else if (incidence >= 15) return 'moderate';
+  else return 'low';
 }
 
 /**
