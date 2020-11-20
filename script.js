@@ -94,16 +94,50 @@ const population = {
 
 var verbose = true;
 var dataSourceCantons = 'BAG'; // Cantons
-var bagData = [];
 var cantonsData = [];
+var casesData;
 var dataPerDay = [];
 var zipDataPerDay = [];
 var dateOffset = 0;
+var proxyURL = 'https://cors-anywhere.herokuapp.com/';
 Chart.defaults.global.defaultFontFamily = "IBM Plex Sans";
 document.getElementById("loaded").style.display = 'none';
 
 //console.log("START");
-getCantons();
+if (dataSourceCantons === 'BAG') {
+  getCases();
+} else {
+  getCantons();
+}
+
+/**
+ * Load BAG cases data
+ */
+function getCases() {
+  var url = 'https://www.covid19.admin.ch/api/data/context';
+  d3.json(proxyURL + url, function(error, jsondata) {
+    var casesURL = jsondata.sources.individual.json.daily.cases;
+    d3.queue()
+    .defer(d3.json, "kantone.json")
+    .defer(d3.json, proxyURL + casesURL)
+    .await(function(error, topo, admindata) {
+      casesData = admindata;
+      // console.log(casesData);
+
+      var source = document.getElementById('ch_source__name');
+      source.innerHTML = 'des BAG';
+      var updated = document.getElementById('ch_source__updated');
+      updated.innerHTML = formatDate(new Date(jsondata.sourceDate.split('_')[0]));
+
+      var projection = d3.geoMercator()
+        .center([8.3, 46.8])
+        .scale(11000);
+      drawMap('#map_cantons', topo, projection, null, function() {
+        getCanton(25, processData); // ZH
+      });
+    });
+  });
+}
 
 /**
  * Load data for cantons
@@ -212,18 +246,12 @@ function getCantons() {
         .scale(11000);
       drawMap('#map_cantons', topo, projection, null, function() {
         var source = document.getElementById('ch_source__name');
-        if (dataSourceCantons === 'BAG') {
-          source.innerHTML = 'des BAG';
-          bagData = csvdata;
-          getCanton(25, processData); // ZH
-        } else {
-          source.innerHTML = 'der Kantone';
-          for (var i = 0; i < cantons.length; i++) {
-            if (i === cantons.length - 1) {
-              getCanton(i, processData);
-            } else {
-              getCanton(i);
-            }
+        source.innerHTML = 'der Kantone';
+        for (var i = 0; i < cantons.length; i++) {
+          if (i === cantons.length - 1) {
+            getCanton(i, processData);
+          } else {
+            getCanton(i);
           }
         }
       });
@@ -247,12 +275,13 @@ function getZIP() {
 }
 
 function getDataPerDay() {
-  var mostRecent = new Date(bagData[bagData.length - 1].date);
+  var mostRecent = new Date(casesData[casesData.length - 4].datum); // exclude last 3 days because insufficent data
   var j = Math.floor((mostRecent - new Date('2020-06-01')) / (1000 * 60 * 60 * 24));
   for (j; j >= 0; j--) {
     var dateString = getDateString(mostRecent, -j);
     var singleDayObject = {
       Date: dateString,
+      Population: casesData[0].pop,
       bag: [],
       canton: []
     };
@@ -260,11 +289,23 @@ function getDataPerDay() {
       singleDayObject.bag.push(getSingleDayObject(cantons[i], dateString, true));
     }
     singleDayObject.canton.push(getSingleDayObject('ZH', dateString, false)); // get cantonal data for 'ZH'
-    singleDayObject.TotalConfCases = singleDayObject.bag.reduce(function(acc, val) { return acc + val.TotalConfCases; }, 0);
-    singleDayObject.NewConfCases_1day = singleDayObject.bag.reduce(function(acc, val) { return acc + val.NewConfCases_1day; }, 0);
-    singleDayObject.NewConfCases_7days = singleDayObject.bag.reduce(function(acc, val) { return acc + val.NewConfCases_7days; }, 0);
-    if (singleDayObject.bag[0].NewConfCases_7dayAverage) {
-      singleDayObject.NewConfCases_7dayAverage = singleDayObject.bag.reduce(function(acc, val) { return acc + val.NewConfCases_7dayAverage; }, 0);
+    if (dataSourceCantons == 'BAG') {
+      var filteredData = casesData.filter(function(d) {
+        if (d.datum == dateString && d.geoRegion == 'CH') return d;
+      })[0];
+      if (filteredData.sumTotal) {
+        singleDayObject.TotalConfCases = filteredData.sumTotal;
+        singleDayObject.NewConfCases_1day = filteredData.entries;
+        singleDayObject.NewConfCases_7days = filteredData.sum7d;
+        singleDayObject.NewConfCases_7dayAverage = filteredData.mean7d;
+      }
+    } else {
+      singleDayObject.TotalConfCases = singleDayObject.bag.reduce(function(acc, val) { return acc + val.TotalConfCases; }, 0);
+      singleDayObject.NewConfCases_1day = singleDayObject.bag.reduce(function(acc, val) { return acc + val.NewConfCases_1day; }, 0);
+      singleDayObject.NewConfCases_7days = singleDayObject.bag.reduce(function(acc, val) { return acc + val.NewConfCases_7days; }, 0);
+      if (singleDayObject.bag[0].NewConfCases_7dayAverage) {
+        singleDayObject.NewConfCases_7dayAverage = singleDayObject.bag.reduce(function(acc, val) { return acc + val.NewConfCases_7dayAverage; }, 0);
+      }
     }
     dataPerDay.push(singleDayObject);
   }
@@ -294,7 +335,7 @@ function drawCantonTable() {
       'Canton': value.Canton,
       'NewConfCases_7days': value.NewConfCases_7days,
       'OldConfCases_7days': dataPerDay[dataPerDay.length - dateOffset - 8].bag[i].NewConfCases_7days,
-      'Population': population[value.Canton],
+      'Population': value.Population ? value.Population : population[value.Canton] * 100000,
       'Date': value.Date,
     }
   });
@@ -304,8 +345,6 @@ function drawCantonTable() {
   startDay.setDate(startDay.getDate() - 13);
   var period = document.getElementById('canton_period__dates');
   period.innerHTML = formatDate(startDay) + ' – ' + formatDate(endDay);
-  var updated = document.getElementById('ch_source__updated');
-  updated.innerHTML = formatDate(new Date(dataPerDay[dataPerDay.length - 1].Date));
   var table;
   var firstTable = document.getElementById("confirmed_1");
   var secondTable = document.getElementById("confirmed_2");
@@ -357,20 +396,33 @@ function drawCantonTable() {
  */
 function getSingleDayObject(canton, dateString, useBAGData) {
   if (typeof useBAGData === 'undefined') useBAGData = (dataSourceCantons === 'BAG');
-  var today = getTotalConfCases(canton, dateString, true, useBAGData);
-  var yesterday = getTotalConfCases(canton, getDateString(new Date(dateString), -1), true, useBAGData);
-  var minus4days = getTotalConfCases(canton, getDateString(new Date(dateString), -4), true, useBAGData);
-  var plus3days = getTotalConfCases(canton, getDateString(new Date(dateString), +3), false, useBAGData);
-  var minus7days = getTotalConfCases(canton, getDateString(new Date(dateString), -7), true, useBAGData);
   var singleDayObject = {
     Canton: canton,
     Date: dateString
   };
-  if (today) {
-    singleDayObject.TotalConfCases = today;
-    if (yesterday) singleDayObject.NewConfCases_1day = today - yesterday;
-    if (minus7days) singleDayObject.NewConfCases_7days = today - minus7days;
-    if (minus4days && plus3days) singleDayObject.NewConfCases_7dayAverage = (plus3days - minus4days) / 7;
+  if (useBAGData) {
+    var filteredData = casesData.filter(function(d) {
+      if (d.datum == dateString && d.geoRegion == canton) return d;
+    })[0];
+    if (filteredData.sumTotal) {
+      singleDayObject.TotalConfCases = filteredData.sumTotal;
+      singleDayObject.NewConfCases_1day = filteredData.entries;
+      singleDayObject.NewConfCases_7days = filteredData.sum7d;
+      singleDayObject.NewConfCases_7dayAverage = filteredData.mean7d;
+      singleDayObject.Population = filteredData.pop;
+    }
+  } else {
+    var today = getTotalConfCases(canton, dateString, true);
+    var yesterday = getTotalConfCases(canton, getDateString(new Date(dateString), -1), true);
+    var minus4days = getTotalConfCases(canton, getDateString(new Date(dateString), -4), true);
+    var plus3days = getTotalConfCases(canton, getDateString(new Date(dateString), +3), false);
+    var minus7days = getTotalConfCases(canton, getDateString(new Date(dateString), -7), true);
+    if (today) {
+      singleDayObject.TotalConfCases = today;
+      if (yesterday) singleDayObject.NewConfCases_1day = today - yesterday;
+      if (minus7days) singleDayObject.NewConfCases_7days = today - minus7days;
+      if (minus4days && plus3days) singleDayObject.NewConfCases_7dayAverage = (plus3days - minus4days) / 7;
+    }
   }
   return singleDayObject;
 }
@@ -381,29 +433,19 @@ function getSingleDayObject(canton, dateString, useBAGData) {
  * @param {string} canton - 2 letter identifier of canton
  * @param {string} dateString - ISO formatted date string
  * @param {boolean} searchPast - if no data is available return data from last date with data?
- * @param {boolean} useBAGData - use BAG data source
  * @returns {number} - total number of confirmed cases
  */
-function getTotalConfCases(canton, dateString, searchPast, useBAGData) {
-  var filteredData;
-  var variable;
-  if (useBAGData) {
-    variable = canton;
-    filteredData = bagData.filter(function(d) {
-      if (d.date == dateString && d[canton] != '') return d;
-    });
-  } else {
-    variable = 'ncumul_conf';
-    filteredData = cantonsData.filter(function(d) {
-      if (d.abbreviation_canton_and_fl == canton && d.date == dateString && d[variable] != '') return d;
-    });
-  }
+function getTotalConfCases(canton, dateString, searchPast) {
+  var variable = 'ncumul_conf';
+  var filteredData = cantonsData.filter(function(d) {
+    if (d.abbreviation_canton_and_fl == canton && d.date == dateString && d[variable] != '') return d;
+  });
   if (filteredData.length > 0) {
     return parseInt(filteredData[filteredData.length - 1][variable]);
   }
   // else try day before
   if (searchPast) {
-    return getTotalConfCases(canton, getDateString(new Date(dateString), -1), true, useBAGData);
+    return getTotalConfCases(canton, getDateString(new Date(dateString), -1), true);
   }
   return null;
 }
@@ -418,6 +460,7 @@ function getTotalConfCases(canton, dateString, searchPast, useBAGData) {
 function drawBarChart(place, filteredData, sectionId) {
   var section = document.getElementById(sectionId);
   var article = document.createElement('article');
+  var pop = filteredData[0].Population ? filteredData[0].Population : Math.round(population[place] * 100000)
 
   if (sectionId === 'cantons') {
     article.id = 'barchart_canton';
@@ -429,14 +472,14 @@ function drawBarChart(place, filteredData, sectionId) {
     h3.innerHTML = 'Kanton ' + names[place];
     article.appendChild(h3);
     var p = document.createElement('p');
-    p.innerHTML = formatNumber(Math.round(population[place] * 100000)) + ' Einwohner\'innen';
+    p.innerHTML = formatNumber(pop) + ' Einwohner\'innen';
     article.appendChild(p);
   }
 
   var card = document.createElement('table');
   var casesLastWeek = filteredData[filteredData.length - 8].NewConfCases_7days;
   var casesThisWeek = filteredData[filteredData.length - 1].NewConfCases_7days;
-  var risk = getRiskObject(casesLastWeek, casesThisWeek, population[place]);
+  var risk = getRiskObject(casesLastWeek, casesThisWeek, pop);
   var riskLabel = getRiskLabel(risk.incidence / 2);
   var tendencyLabel = isNaN(risk.changePercentage) ? '' : getTendencyLabel(risk.changePercentage);
 
@@ -741,7 +784,7 @@ function drawPLZTable() {
       name = plz;
       plz = '&nbsp;';
     } else {
-      var risk = getRiskObject(lastWeekParsed, thisWeekParsed, (parseInt(singlePLZ.Population) / 100000));
+      var risk = getRiskObject(lastWeekParsed, thisWeekParsed, parseInt(singlePLZ.Population));
       var svgPolygon = document.getElementById('area_' + singlePLZ.PLZ);
       if (svgPolygon) svgPolygon.setAttribute('class', 'area area--risk-' + risk.className);
     }
@@ -772,7 +815,7 @@ function drawPLZTable() {
  * 
  * @param {number} casesLastWeek - sum of new cases 14 to 8 days ago
  * @param {number} casesThisWeek - sum of new cases 7 to 1 days ago
- * @param {number} population - in 100'000
+ * @param {number} population
  */
 function getRiskObject(casesLastWeek, casesThisWeek, population) {
   var changePercent = NaN;
@@ -782,13 +825,14 @@ function getRiskObject(casesLastWeek, casesThisWeek, population) {
   var riskClass = 'unknown';
   var riskClass_lastWeek = 'unknown';
   var riskClass_thisWeek = 'unknown';
+  var incidenceSize = 100000;
 
   var newConfCases_14days = casesLastWeek + casesThisWeek;
-  var incidence_14day = Math.round(newConfCases_14days / population);
-  var incidence_7dayOld = Math.round(casesLastWeek / population);
-  var incidence_7day = Math.round(casesThisWeek / population);
+  var incidence_14day = Math.round(incidenceSize * newConfCases_14days / population);
+  var incidence_7dayOld = Math.round(incidenceSize * casesLastWeek / population);
+  var incidence_7day = Math.round(incidenceSize * casesThisWeek / population);
 
-  if (newConfCases_14days > 2 || population >= 0.05) {
+  if (newConfCases_14days > 2 || population >= 5000) {
     if (incidence_14day >= 30) {
       changePercent = Math.round(100 * ((casesThisWeek / casesLastWeek) - 1));
       if (isFinite(changePercent)) changeText = (changePercent > 0 ? '+' : '') + changePercent + '%';
