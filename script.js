@@ -115,11 +115,11 @@ if (dataSourceCantons === 'BAG') {
  */
 function getCases() {
   var url = 'https://www.covid19.admin.ch/api/data/context';
-  d3.json(proxyURL + url, function(error, jsondata) {
+  d3.json(url, function(error, jsondata) {
     var casesURL = jsondata.sources.individual.json.daily.cases;
     d3.queue()
     .defer(d3.json, "kantone.json")
-    .defer(d3.json, proxyURL + casesURL)
+    .defer(d3.json, casesURL)
     .await(function(error, topo, admindata) {
       casesData = admindata;
       // console.log(casesData);
