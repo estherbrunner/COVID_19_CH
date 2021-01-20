@@ -99,6 +99,7 @@ var casesData;
 var dataPerDay = [];
 var zipDataPerDay = [];
 var dateOffset = 0;
+var chartPeriodLength = 60;
 var proxyURL = 'https://cors-anywhere.herokuapp.com/';
 Chart.defaults.global.defaultFontFamily = "IBM Plex Sans";
 document.getElementById("loaded").style.display = 'none';
@@ -176,12 +177,12 @@ function processData() {
   document.getElementById("loaded").style.display = 'block';
   getDataPerDay();
   drawCantonTable();
-  drawBarChart('CH', dataPerDay.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'index');
+  drawBarChart('CH', dataPerDay.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'index');
   var canton = 'ZH';
   var filteredData = dataPerDay.map(function(d) {
     return d.canton.filter(function(dd) { return dd.Canton === canton; })[0];
   });
-  drawBarChart(canton, filteredData.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'overview_zh');
+  drawBarChart(canton, filteredData.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'overview_zh');
   // getDistricts();
   getZIP();
   addEventListeners();
@@ -193,7 +194,7 @@ function redrawData(diff) {
   enableDisableButtons();
 
   document.querySelector('#index article').remove();
-  drawBarChart('CH', dataPerDay.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'index');
+  drawBarChart('CH', dataPerDay.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'index');
 
   document.getElementById('confirmed_1').innerHTML = '';
   document.getElementById('confirmed_2').innerHTML = '';
@@ -204,7 +205,7 @@ function redrawData(diff) {
   var filteredData = dataPerDay.map(function(d) {
     return d.canton.filter(function(dd) { return dd.Canton === canton; })[0];
   });
-  drawBarChart(canton, filteredData.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'overview_zh');
+  drawBarChart(canton, filteredData.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'overview_zh');
 
   document.getElementById('plzbody').innerHTML = '';
   drawPLZTable();
@@ -474,11 +475,28 @@ function drawBarChart(place, filteredData, sectionId) {
     var p = document.createElement('p');
     p.innerHTML = formatNumber(pop) + ' Einwohner\'innen';
     article.appendChild(p);
+  } else if (sectionId === 'zipcodes') {
+    article.id = 'barchart_zip';
+    if (document.getElementById(article.id)) {
+      document.getElementById(article.id).remove();
+    }
+    var h3 = document.createElement('h3');
+    h3.innerHTML = place + ' ' + plzNames[place];
+    article.appendChild(h3);
+    var p = document.createElement('p');
+    p.innerHTML = formatNumber(pop) + ' Einwohner\'innen';
+    article.appendChild(p);
   }
 
   var card = document.createElement('table');
-  var casesLastWeek = filteredData[filteredData.length - 8].NewConfCases_7days;
-  var casesThisWeek = filteredData[filteredData.length - 1].NewConfCases_7days;
+  var casesLastWeek, casesThisWeek;
+  if (sectionId === 'zipcodes') {
+    casesLastWeek = parsePrevalenceRange(filteredData[filteredData.length - 8].NewConfCases_7days);
+    casesThisWeek = parsePrevalenceRange(filteredData[filteredData.length - 1].NewConfCases_7days);
+  } else {
+    casesLastWeek = filteredData[filteredData.length - 8].NewConfCases_7days;
+    casesThisWeek = filteredData[filteredData.length - 1].NewConfCases_7days;
+  }
   var risk = getRiskObject(casesLastWeek, casesThisWeek, pop);
   var riskLabel = getRiskLabel(risk.incidence / 2);
   var tendencyLabel = isNaN(risk.changePercentage) ? '' : getTendencyLabel(risk.changePercentage);
@@ -525,9 +543,12 @@ function drawBarChart(place, filteredData, sectionId) {
   });
   var averages = filteredData.map(function(d) {
     if (d.NewConfCases_7dayAverage) return Math.round(100 * d.NewConfCases_7dayAverage) / 100;
+    else if (d.NewConfCases_7days && (sectionId === 'zipcodes')) return Math.round(100 * parsePrevalenceRange(d.NewConfCases_7days) / 7) / 100;
   });
   var averageColors = filteredData.map(function(d) {
-    var incidence = 14 * d.NewConfCases_7dayAverage / population[place];
+    var incidence;
+    if (d.NewConfCases_7dayAverage) incidence = 14 * 100000 * d.NewConfCases_7dayAverage / pop;
+    else if (d.NewConfCases_7days && (sectionId === 'zipcodes')) incidence = 2 * 100000 * parsePrevalenceRange(d.NewConfCases_7days) / pop;
     if (incidence >= 1920) return '#4a25a2'; // dark blue
     else if (incidence >= 960) return '#7d2a9f'; // purple
     else if (incidence >= 480) return '#a63587'; // fuchsia
@@ -538,7 +559,7 @@ function drawBarChart(place, filteredData, sectionId) {
     return '#7fd560'; // green
   });
   var casesColors = filteredData.map(function(d) {
-    var incidence = 14 * d.NewConfCases_1day / population[place];
+    var incidence = 14 * 100000 * d.NewConfCases_1day / pop;
     if (incidence >= 1920) return inDarkMode() ? '#230559' : '#786dba'; // dark blue
     else if (incidence >= 960) return inDarkMode() ? '#440e59' : '#aa75c1'; // purple
     else if (incidence >= 480) return inDarkMode() ? '#601a4d' : '#d37db5'; // fuchsia
@@ -568,10 +589,10 @@ function drawBarChart(place, filteredData, sectionId) {
       tooltips: {
         enabled: true
       },
-      scales: getScales(),
+      scales: getScales() /*,
       plugins: {
         datalabels: getDataLabels()
-      }
+      } */
     },
     data: {
       labels: dateLabels,
@@ -586,6 +607,7 @@ function drawBarChart(place, filteredData, sectionId) {
           borderColor: 'transparent',
           backgroundColor: casesColors,
           datalabels: {
+            display: false,
             align: 'end',
             anchor: 'end'
           }
@@ -730,7 +752,12 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
           var filteredData = dataPerDay.map(function(d) {
             return d.bag.filter(function(dd) { return dd.Canton === id; })[0];
           });
-          drawBarChart(id, filteredData.slice(dataPerDay.length - 30 - dateOffset, dataPerDay.length - dateOffset), 'cantons');
+          drawBarChart(id, filteredData.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'cantons');
+        } else if (container === '#map_zipcodes') {
+          var filteredData = zipDataPerDay.map(function(d) {
+            return d.data.filter(function(dd) { if (dd.PLZ == id) return dd; })[0];
+          });
+          drawBarChart(id, filteredData.slice(zipDataPerDay.length - chartPeriodLength - dateOffset, zipDataPerDay.length - dateOffset), 'zipcodes');
         }
       }
     })
@@ -777,8 +804,8 @@ function drawPLZTable() {
     tr.id = 'row_' + plz;
     tr.className = 'row';
     tr.setAttribute('data-id', plz);
-    var lastWeekParsed = parseInt(singlePLZ.OldConfCases_7days.split("-")[0]) + 1;
-    var thisWeekParsed = parseInt(singlePLZ.NewConfCases_7days.split("-")[0]) + 1;
+    var lastWeekParsed = parsePrevalenceRange(singlePLZ.OldConfCases_7days);
+    var thisWeekParsed = parsePrevalenceRange(singlePLZ.NewConfCases_7days);
     var newConfCases_14days = lastWeekParsed + thisWeekParsed;
     if (plz.length > 4) {
       name = plz;
@@ -908,7 +935,7 @@ function getRiskLabel(incidence) {
   else if (incidence >= 60) return 'hohes Risiko';
   else if (incidence >= 30) return 'erhöhtes Risiko';
   else if (incidence >= 15) return 'mässiges Risiko';
-  else return 'tiefes Risiko';
+  else return 'niedriges Risiko';
 }
 
 /**
@@ -983,6 +1010,16 @@ function getDateOfISOWeek(week, year) {
     ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
   }
   return ISOweekStart;
+}
+
+/**
+ * Parse prevalence range
+ * 
+ * @param {string} range - lower bound - upper bound
+ * @returns {number}
+ */
+function parsePrevalenceRange(range) {
+  return parseInt(range.split("-")[0]) + 1;
 }
 
 var plzNames = {
