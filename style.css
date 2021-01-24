@@ -127,7 +127,7 @@ section header h2 {
 	font-size: 0.9rem;
 	text-transform: uppercase;
 	max-width: none;
-	margin: 2rem 0;
+	margin: 2rem 0 1rem;
 	color: #000;
 	color: var(--color-main);
 	background-color: #fff;
@@ -346,6 +346,9 @@ h2, h3 {
 canvas {
 	width: 100%;
 	min-width: var(--canvas-minwidth);
+}
+.age-graph {
+	margin-top: 1rem;
 }
 button {
 	font-family: var(--font--sans);

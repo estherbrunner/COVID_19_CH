@@ -62,44 +62,18 @@ const names = {
   112: "Zürich"
 };
 
-const population = {
-  "CH": 85.45,
-  "AG": 6.78,
-  "AI": 0.16,
-  "AR": 0.55,
-  "BE": 10.35,
-  "BL": 2.88,
-  "BS": 1.95,
-  "FR": 3.19,
-  "GE": 4.99,
-  "GL": 0.40,
-  "GR": 1.98,
-  "JU": 0.73,
-  "LU": 4.10,
-  "NE": 1.77,
-  "NW": 0.43,
-  "OW": 0.38,
-  "SG": 5.08,
-  "SH": 0.82,
-  "SO": 2.73,
-  "SZ": 1.59,
-  "TG": 2.76,
-  "TI": 3.53,
-  "UR": 0.36,
-  "VD": 7.99,
-  "VS": 3.44,
-  "ZG": 1.27,
-  "ZH": 15.21
-};
+const ageGroups = ['0 - 9', '10 - 19', '20 - 29', '30 - 39', '40 - 49', '50 - 59', '60 - 69', '70 - 79', '80+'];
 
 var verbose = true;
 var dataSourceCantons = 'BAG'; // Cantons
 var cantonsData = [];
 var casesData;
+var byAgeData;
 var dataPerDay = [];
 var zipDataPerDay = [];
 var dateOffset = 0;
 var chartPeriodLength = 60;
+var canvasHeight = document.body.clientWidth < 421 ? 210 : 300;
 var proxyURL = 'https://cors-anywhere.herokuapp.com/';
 Chart.defaults.global.defaultFontFamily = "IBM Plex Sans";
 document.getElementById("loaded").style.display = 'none';
@@ -118,12 +92,17 @@ function getCases() {
   var url = 'https://www.covid19.admin.ch/api/data/context';
   d3.json(url, function(error, jsondata) {
     var casesURL = jsondata.sources.individual.json.daily.cases;
+    var byAgeURL = jsondata.sources.individual.json.weekly.byAge.cases;
     d3.queue()
     .defer(d3.json, "kantone.json")
     .defer(d3.json, casesURL)
-    .await(function(error, topo, admindata) {
-      casesData = admindata;
+    .defer(d3.json, byAgeURL)
+    .await(function(error, topo, cases, byAge) {
+      casesData = cases;
+      byAgeData = byAge;
+
       // console.log(casesData);
+      // console.log(byAgeData);
 
       var source = document.getElementById('ch_source__name');
       source.innerHTML = 'des BAG';
@@ -193,14 +172,15 @@ function redrawData(diff) {
 
   enableDisableButtons();
 
-  document.querySelector('#index article').remove();
+  document.querySelector('#barchart_index').remove();
   drawBarChart('CH', dataPerDay.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'index');
 
+  document.querySelector('#barchart_canton').remove();
   document.getElementById('confirmed_1').innerHTML = '';
   document.getElementById('confirmed_2').innerHTML = '';
   drawCantonTable();
 
-  document.querySelector('#overview_zh article').remove();
+  document.querySelector('#barchart_overview_zh').remove();
   var canton = 'ZH';
   var filteredData = dataPerDay.map(function(d) {
     return d.canton.filter(function(dd) { return dd.Canton === canton; })[0];
@@ -336,7 +316,7 @@ function drawCantonTable() {
       'Canton': value.Canton,
       'NewConfCases_7days': value.NewConfCases_7days,
       'OldConfCases_7days': dataPerDay[dataPerDay.length - dateOffset - 8].bag[i].NewConfCases_7days,
-      'Population': value.Population ? value.Population : population[value.Canton] * 100000,
+      'Population': value.Population,
       'Date': value.Date,
     }
   });
@@ -461,9 +441,13 @@ function getTotalConfCases(canton, dateString, searchPast) {
 function drawBarChart(place, filteredData, sectionId) {
   var section = document.getElementById(sectionId);
   var article = document.createElement('article');
-  var pop = filteredData[0].Population ? filteredData[0].Population : Math.round(population[place] * 100000)
+  var pop = filteredData[0].Population ? filteredData[0].Population : 1539275; // fallback population size of ZH
 
-  if (sectionId === 'cantons') {
+  if (sectionId === 'index') {
+    article.id = 'barchart_index';
+  } else if (sectionId === 'owerview_zh') {
+    article.id = 'barchart_overview_zh';
+  } else if (sectionId === 'cantons') {
     article.id = 'barchart_canton';
     if (document.getElementById(article.id)) {
       document.getElementById(article.id).remove();
@@ -504,9 +488,9 @@ function drawBarChart(place, filteredData, sectionId) {
   card.className = 'figure figure--' + risk.className;
   card.innerHTML = '<thead><tr>'
     + '<th class="figure__row-header" scope="row">Zeitraum</th>'
-    + '<th class="figure__column-header cell--' + risk.className_lastWeek + '" scope="col">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 14].Date)) + '</th>'
-    + '<th class="figure__column-header cell--' + risk.className_thisWeek + '" scope="col">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 7].Date)) + '</th>'
-    + '<th class="figure__column-header" scope="col">Letzte 2 Wochen</th>'
+    + '<th class="figure__column-header cell--' + risk.className_lastWeek + '" scope="col">ab ' + formatDate(new Date(filteredData[filteredData.length - 14].Date)) + '</th>'
+    + '<th class="figure__column-header cell--' + risk.className_thisWeek + '" scope="col">ab ' + formatDate(new Date(filteredData[filteredData.length - 7].Date)) + '</th>'
+    + '<th class="figure__column-header" scope="col">14 Tage</th>'
     + '</tr></thead><tbody><tr>'
     + '<th class="figure__row-header" scope="row">Neuinfektionen</th>'
     + '<td class="cell cell--' + risk.className_lastWeek + '">' + formatNumber(casesLastWeek) + '</td>'
@@ -530,11 +514,16 @@ function drawBarChart(place, filteredData, sectionId) {
     div.appendChild(document.createTextNode(_("Keine Daten")));
   } else {
     canvas.id = place;
-    canvas.height = 250;
+    canvas.height = canvasHeight;
     div.appendChild(canvas);
   }
   article.appendChild(div);
   section.appendChild(article);
+
+  if (sectionId === 'index' || sectionId === 'cantons') {
+    drawAgeGraph(place, filteredData[0].Date, article.id);
+  }
+
   var dateLabels = filteredData.map(function(d) {
     return d.Date;
   });
@@ -549,25 +538,11 @@ function drawBarChart(place, filteredData, sectionId) {
     var incidence;
     if (d.NewConfCases_7dayAverage) incidence = 14 * 100000 * d.NewConfCases_7dayAverage / pop;
     else if (d.NewConfCases_7days && (sectionId === 'zipcodes')) incidence = 2 * 100000 * parsePrevalenceRange(d.NewConfCases_7days) / pop;
-    if (incidence >= 1920) return '#4a25a2'; // dark blue
-    else if (incidence >= 960) return '#7d2a9f'; // purple
-    else if (incidence >= 480) return '#a63587'; // fuchsia
-    else if (incidence >= 240) return '#c54860'; // pink
-    else if (incidence >= 120) return '#d56534'; // red
-    else if (incidence >= 60) return '#d28a02'; // orange
-    else if (incidence >= 30) return '#b6b21d'; // yellow
-    return '#7fd560'; // green
+    return getIncidenceColor(incidence, 1);
   });
   var casesColors = filteredData.map(function(d) {
     var incidence = 14 * 100000 * d.NewConfCases_1day / pop;
-    if (incidence >= 1920) return inDarkMode() ? '#230559' : '#786dba'; // dark blue
-    else if (incidence >= 960) return inDarkMode() ? '#440e59' : '#aa75c1'; // purple
-    else if (incidence >= 480) return inDarkMode() ? '#601a4d' : '#d37db5'; // fuchsia
-    else if (incidence >= 240) return inDarkMode() ? '#792a39' : '#f08a98'; // pink
-    else if (incidence >= 120) return inDarkMode() ? '#894121' : '#fc9f76'; // red
-    else if (incidence >= 60) return inDarkMode() ? '#8c5e0f' : '#f5bb64'; // orange
-    else if (incidence >= 30) return inDarkMode() ? '#807e22' : '#dad971'; // yellow
-    return inDarkMode() ? '#649c4f' : '#b3f29a'; // green
+    return getIncidenceColor(incidence, 0.5);
   });
 
   new Chart(canvas.id, {
@@ -587,55 +562,52 @@ function drawBarChart(place, filteredData, sectionId) {
         display: false
       },
       tooltips: {
-        enabled: true
+        enabled: true,
+        mode: 'index'
       },
-      scales: getScales() /*,
-      plugins: {
-        datalabels: getDataLabels()
-      } */
+      scales: getScales()
     },
     data: {
       labels: dateLabels,
-      datasets: [
-        {
-          data: cases,
-          order: 1,
-          type: 'bar',
-          fill: false,
-          cubicInterpolationMode: 'monotone',
-          spanGaps: false,
-          borderColor: 'transparent',
-          backgroundColor: casesColors,
-          datalabels: {
-            display: false,
-            align: 'end',
-            anchor: 'end'
-          }
-        },
-        {
-          data: averages,
-          order: 0,
-          type: 'line',
-          pointRadius: 5,
-          pointBorderWidth: 0,
-          pointBorderColor: 'transparent',
-          pointBackgroundColor: averageColors,
-          spanGaps: true,
-          borderColor: inDarkMode() ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
-          backgroundColor: 'transparent',
-          datalabels: {
-            display: false
-          }
-        }
-      ]
+      datasets: [{
+        data: cases,
+        order: 1,
+        label: 'Neuinfektionen',
+        type: 'bar',
+        backgroundColor: casesColors
+      }, {
+        data: averages,
+        order: 0,
+        label: '7 Tage Ø',
+        type: 'line',
+        pointRadius: 5,
+        pointBorderWidth: 0,
+        pointBorderColor: 'transparent',
+        pointBackgroundColor: averageColors,
+        spanGaps: true,
+        borderColor: inDarkMode() ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'transparent'
+      }]
     }
   });
+}
+
+function getIncidenceColor(incidence, opacity) {
+  if (incidence >= 1920) return 'rgba(74, 37, 162, ' + opacity + ')'; // dark blue
+  else if (incidence >= 960) return 'rgba(125, 42, 159, ' + opacity + ')'; // purple
+  else if (incidence >= 480) return 'rgba(166, 53, 135, ' + opacity + ')'; // fuchsia
+  else if (incidence >= 240) return 'rgba(197, 72, 96, ' + opacity + ')'; // pink
+  else if (incidence >= 120) return 'rgba(213, 101, 52, ' + opacity + ')'; // red
+  else if (incidence >= 60) return 'rgba(210, 138, 2, ' + opacity + ')'; // orange
+  else if (incidence >= 30) return 'rgba(182, 178, 29, ' + opacity + ')'; // yellow
+  return 'rgba(127, 213, 96, ' + opacity + ')'; // green
 }
 
 function getScales() {
   return {
     xAxes: [{
       type: 'time',
+      stacked: true,
       offset: true,
       time: {
         tooltipFormat: 'DD.MM.YYYY',
@@ -652,6 +624,7 @@ function getScales() {
     }],
     yAxes: [{
       type: 'linear',
+      stacked: true,
       position: 'right',
       ticks: {
         beginAtZero: true,
@@ -664,27 +637,105 @@ function getScales() {
   };
 }
 
-function getDataLabels() {
-  if (getDeviceState() == 2) return false;
-  return {
-    color: inDarkMode() ? '#ccc' : 'black',
-    font: {
-      weight: 'bold',
-    },
-    formatter: function(value) {
-      return (value == 0) ? '' : '' + formatNumber(value);
+/**
+ * Draw age graph
+ * 
+ * @param {string} place - 'CH' or canton abbreviation
+ * @param {Date} startDate - begin of period
+ * @param {string} containerId - article to render table into
+ */
+function drawAgeGraph(place, startDate, containerId) {
+  var container = document.getElementById(containerId);
+  var isoWeek = getISOWeekOfDate(startDate);
+  var filteredData = byAgeData.filter(function(d) {
+    return (d.geoRegion === place) && (d.datum >= parseInt('' + isoWeek[1] + isoWeek[0], 10));
+  });
+
+  var canvas = document.createElement('canvas');
+  canvas.id = 'age_' + place;
+  canvas.className = 'age-graph';
+  canvas.height = 2 * canvasHeight / 3;
+  container.appendChild(canvas);
+
+  var week;
+  var weeks = [];
+  var weekLabels = [];
+  var weekDatasets = [];
+  var ageGroupData;
+  var gradientFill;
+  var i, j;
+  for (i = 0; i < filteredData.length / 10; i++) {
+    week = filteredData[i].datum;
+    weeks.push(week);
+    weekLabels.push(formatDate(getDateOfISOWeek(week.toString().substr(4, 2), week.toString().substr(0, 4))));
+  }
+
+  for (i = 0; i < ageGroups.length; i++) {
+    ageGroupData = filteredData.filter(function(d) {
+      return d.altersklasse_covid19 === ageGroups[i];
+    });
+    if (document.body.clientWidth < 421) {
+      gradientFill = canvas.getContext('2d').createLinearGradient(40, 0, canvas.clientWidth - 10, 0);
+    } else {
+      gradientFill = canvas.getContext('2d').createLinearGradient(20, 0, canvas.clientWidth - 20, 0);
     }
-  };
-}
+    for (j = 0; j < ageGroupData.length; j++) {
+      gradientFill.addColorStop(j / (ageGroupData.length -1), getIncidenceColor(ageGroupData[j].inz_entries, (i + 2) / 10));
+    }
+    weekDatasets.push({
+      label: ageGroups[i],
+      fill: i === 0 ? 'start' : '-1',
+      backgroundColor: gradientFill,
+      borderWidth: 1,
+      borderColor: inDarkMode() ? '#000000' : '#ffffff',
+      pointRadius: 0,
+      pointBorderWidth: 0,
+      data: ageGroupData.map(function(d) { return d.prct; })
+    });
+  }
 
-// Create the state-indicator element
-var indicator = document.createElement('div');
-indicator.className = 'state-indicator';
-document.body.appendChild(indicator);
-
-// Create a method which returns device state
-function getDeviceState() {
-  return parseInt(window.getComputedStyle(indicator).getPropertyValue('z-index'), 10);
+  new Chart(canvas.id, {
+    type: 'line',
+    options: {
+      responsive: false,
+      legend: {
+        display: false
+      },
+      title: {
+        display: false
+      },
+      tooltips: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+        position: 'nearest',
+        callbacks: {
+          label: function(tooltipItem, data) {
+            var label = data.datasets[tooltipItem.datasetIndex].label || '';
+            label += ': ' + tooltipItem.yLabel + '%';
+            return label;
+          }
+        }
+      },
+      scales: {
+        yAxes: [{
+          stacked: true,
+          display: false,
+          ticks: {
+            suggestedMax: 100,
+            max: 100
+          },
+          gridLines: {
+            color: inDarkMode() ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'
+          }
+        }]
+      }
+    },
+    data: {
+      labels: weekLabels,
+      datasets: weekDatasets
+    }
+  });
 }
 
 /**
@@ -1010,6 +1061,20 @@ function getDateOfISOWeek(week, year) {
     ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
   }
   return ISOweekStart;
+}
+
+/**
+ * Get ISO week of date
+ * 
+ * @param {string} date - iso date string
+ * @returns {Array} - [week, year]
+ */
+function getISOWeekOfDate(date) {
+  var d = new Date(date);
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+  return [weekNo, d.getUTCFullYear()];
 }
 
 /**
