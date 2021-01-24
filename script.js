@@ -175,7 +175,9 @@ function redrawData(diff) {
   document.querySelector('#barchart_index').remove();
   drawBarChart('CH', dataPerDay.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'index');
 
-  document.querySelector('#barchart_canton').remove();
+  if (document.querySelector('#barchart_canton')) {
+    document.querySelector('#barchart_canton').remove();
+  }
   document.getElementById('confirmed_1').innerHTML = '';
   document.getElementById('confirmed_2').innerHTML = '';
   drawCantonTable();
@@ -188,11 +190,14 @@ function redrawData(diff) {
   drawBarChart(canton, filteredData.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'overview_zh');
 
   document.getElementById('plzbody').innerHTML = '';
+  if (document.querySelector('#barchart_zip')) {
+    document.querySelector('#barchart_zip').remove();
+  }
   drawPLZTable();
 }
 
 function enableDisableButtons() {
-  var startDate = new Date('2020-07-17');
+  var startDate = new Date('2020-08-02');
   var endDate = new Date(zipDataPerDay[zipDataPerDay.length - 1].Date);
   enableDisableButton('.period__button--prev-week', startDate, endDate, -7);
   enableDisableButton('.period__button--prev-day', startDate, endDate, -1);
@@ -439,13 +444,16 @@ function getTotalConfCases(canton, dateString, searchPast) {
  * @param {string} sectionId - section to render chart to
  */
 function drawBarChart(place, filteredData, sectionId) {
+  if (!filteredData) {
+    return; // fail gracefully
+  }
   var section = document.getElementById(sectionId);
   var article = document.createElement('article');
   var pop = filteredData[0].Population ? filteredData[0].Population : 1539275; // fallback population size of ZH
 
   if (sectionId === 'index') {
     article.id = 'barchart_index';
-  } else if (sectionId === 'owerview_zh') {
+  } else if (sectionId === 'overview_zh') {
     article.id = 'barchart_overview_zh';
   } else if (sectionId === 'cantons') {
     article.id = 'barchart_canton';
@@ -521,7 +529,7 @@ function drawBarChart(place, filteredData, sectionId) {
   section.appendChild(article);
 
   if (sectionId === 'index' || sectionId === 'cantons') {
-    drawAgeGraph(place, filteredData[0].Date, article.id);
+    drawAgeGraph(place, filteredData[0].Date, filteredData[filteredData.length - 1].Date, article.id);
   }
 
   var dateLabels = filteredData.map(function(d) {
@@ -642,13 +650,15 @@ function getScales() {
  * 
  * @param {string} place - 'CH' or canton abbreviation
  * @param {Date} startDate - begin of period
+ * @param {Date} endDate - end of period
  * @param {string} containerId - article to render table into
  */
-function drawAgeGraph(place, startDate, containerId) {
+function drawAgeGraph(place, startDate, endDate, containerId) {
   var container = document.getElementById(containerId);
-  var isoWeek = getISOWeekOfDate(startDate);
+  var isoWeekStart = getISOWeekOfDate(startDate);
+  var isoWeekEnd = getISOWeekOfDate(endDate);
   var filteredData = byAgeData.filter(function(d) {
-    return (d.geoRegion === place) && (d.datum >= parseInt('' + isoWeek[1] + isoWeek[0], 10));
+    return (d.geoRegion === place) && (d.datum >= isoWeekStart) && (d.datum <= isoWeekEnd);
   });
 
   var canvas = document.createElement('canvas');
@@ -835,7 +845,7 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
 
 function drawPLZTable() {
   var tbody = document.getElementById("plzbody");
-  var lastDate = zipDataPerDay[zipDataPerDay.length - dateOffset - 1].Date;
+  var lastDate = zipDataPerDay[zipDataPerDay.length - dateOffset - 3].Date;
   var endDay = new Date(lastDate);
   var startDay = new Date(lastDate);
   startDay.setDate(startDay.getDate() - 13);
@@ -843,11 +853,11 @@ function drawPLZTable() {
   period.innerHTML = formatDate(startDay) + ' – ' + formatDate(endDay);
   var updated = document.getElementById('zh_source__updated');
   updated.innerHTML = formatDate(new Date(zipDataPerDay[zipDataPerDay.length - 1].Date));
-  var filteredPLZData = zipDataPerDay[zipDataPerDay.length - dateOffset - 1].data;
+  var filteredPLZData = zipDataPerDay[zipDataPerDay.length - dateOffset - 3].data;
   for (var i = 0; i < filteredPLZData.length; i++) {
     var singlePLZ = filteredPLZData[i];
     var plz = "" + singlePLZ.PLZ;
-    var lastWeek = zipDataPerDay[zipDataPerDay.length - dateOffset - 8].data.filter(function(d) { if (d.PLZ == plz) return d; })[0];
+    var lastWeek = zipDataPerDay[zipDataPerDay.length - dateOffset - 10].data.filter(function(d) { if (d.PLZ == plz) return d; })[0];
     singlePLZ.OldConfCases_7days = lastWeek.NewConfCases_7days;
     var name = plzNames[plz];
     if (name == undefined) name = '';
@@ -1067,14 +1077,14 @@ function getDateOfISOWeek(week, year) {
  * Get ISO week of date
  * 
  * @param {string} date - iso date string
- * @returns {Array} - [week, year]
+ * @returns {number} - YYYYWW
  */
 function getISOWeekOfDate(date) {
   var d = new Date(date);
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
   var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
   var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
-  return [weekNo, d.getUTCFullYear()];
+  return parseInt(d.getUTCFullYear() + ('' + weekNo).padStart(2, '0'), 10);
 }
 
 /**
