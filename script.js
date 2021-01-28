@@ -495,11 +495,9 @@ function drawBarChart(place, filteredData, sectionId) {
 
   card.className = 'figure figure--' + risk.className_thisWeek;
   card.innerHTML = '<thead><tr>'
-    + '<th class="figure__column-header" colspan="2" scope="col">Neuinfektionen / Inzidenz</th>'
-    + '<th class="figure__column-header" rowspan="2" scope="col">Veränderung zur Vorwoche</th>'
-    + '</tr><tr>'
     + '<th class="figure__column-header cell--' + risk.className + '" scope="col">14 Tage ab ' + formatDate(new Date(filteredData[filteredData.length - 14].Date)) + '</th>'
     + '<th class="figure__column-header" scope="col">7 Tage ab ' + formatDate(new Date(filteredData[filteredData.length - 7].Date)) + '</th>'
+    + '<th class="figure__column-header" scope="col">Veränderung zur Vorwoche</th>'
     + '</tr></thead><tbody><tr>'
     + '<td class="cell cell--' + risk.className + '">' + formatNumber(casesLastWeek + casesThisWeek) + '<br/><strong>' + formatNumber(risk.incidence) + '</strong></td>'
     + '<td class="cell">' + formatNumber(casesThisWeek) + '<br/><strong class="figure__number">' + formatNumber(risk.incidence_thisWeek) + '</strong><br/>' + riskLabel + '</td>'

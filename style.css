@@ -127,7 +127,7 @@ section header h2 {
 	font-size: 0.9rem;
 	text-transform: uppercase;
 	max-width: none;
-	margin: 2rem 0 1rem;
+	margin: 1rem 0;
 	color: #000;
 	color: var(--color-main);
 	background-color: #fff;
