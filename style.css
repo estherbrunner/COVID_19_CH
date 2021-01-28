@@ -550,6 +550,7 @@ button {
 	font-weight: normal;
 	border: 0;
 	padding: 0.5rem;
+	vertical-align: top;
 }
 
 .figure tr:nth-child(2) th,
@@ -558,15 +559,15 @@ button {
 }
 
 .figure__column-header {
-	text-align: center;
+	text-align: center !important;
 }
 
-.figure th:first-child {
+.figure .figure__row-header {
 	text-align: right;
 }
 
 @media (max-width: 750px) {
-	.figure th:first-child {
+	.figure .figure__row-header {
 		display: none;
 	}
 }
