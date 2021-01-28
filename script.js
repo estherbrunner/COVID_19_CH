@@ -473,7 +473,7 @@ function drawBarChart(place, filteredData, sectionId) {
       document.getElementById(article.id).remove();
     }
     var h3 = document.createElement('h3');
-    h3.innerHTML = place + ' ' + plzNames[place];
+    h3.innerHTML = place + ' ' + plzNames[place].replace('<br/>', ' ');
     article.appendChild(h3);
     var p = document.createElement('p');
     p.innerHTML = formatNumber(pop) + ' Einwohner\'innen';
@@ -535,23 +535,51 @@ function drawBarChart(place, filteredData, sectionId) {
   var dateLabels = filteredData.map(function(d) {
     return d.Date;
   });
-  var cases = filteredData.map(function(d) {
-    return d.NewConfCases_1day;
-  });
   var averages = filteredData.map(function(d) {
     if (d.NewConfCases_7dayAverage) return Math.round(100 * d.NewConfCases_7dayAverage) / 100;
     else if (d.NewConfCases_7days && (sectionId === 'zipcodes')) return Math.round(100 * parsePrevalenceRange(d.NewConfCases_7days) / 7) / 100;
   });
   var averageColors = filteredData.map(function(d) {
     var incidence;
-    if (d.NewConfCases_7dayAverage) incidence = 14 * 100000 * d.NewConfCases_7dayAverage / pop;
-    else if (d.NewConfCases_7days && (sectionId === 'zipcodes')) incidence = 2 * 100000 * parsePrevalenceRange(d.NewConfCases_7days) / pop;
+    if (d.NewConfCases_7dayAverage) {
+      incidence = 14 * 100000 * d.NewConfCases_7dayAverage / pop;
+    } else if (d.NewConfCases_7days && (sectionId === 'zipcodes')) {
+      if (d.NewConfCases_7days === '0-3' && pop < 5000) return '#808080'; // gray - cannot calculate incidence
+      incidence = 2 * 100000 * parsePrevalenceRange(d.NewConfCases_7days) / pop;
+    }
     return getIncidenceColor(incidence, 1);
   });
-  var casesColors = filteredData.map(function(d) {
-    var incidence = 14 * 100000 * d.NewConfCases_1day / pop;
-    return getIncidenceColor(incidence, 0.5);
-  });
+
+  var datasets = [{
+    data: averages,
+    order: 0,
+    label: '7 Tage Ø',
+    type: 'line',
+    pointRadius: 5,
+    pointBorderWidth: 0,
+    pointBorderColor: 'transparent',
+    pointBackgroundColor: averageColors,
+    spanGaps: true,
+    borderColor: inDarkMode() ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'transparent'
+  }];
+
+  if (sectionId !== 'zipcodes') {
+    var cases = filteredData.map(function(d) {
+      return d.NewConfCases_1day;
+    });
+    var casesColors = filteredData.map(function(d) {
+      var incidence = 14 * 100000 * d.NewConfCases_1day / pop;
+      return getIncidenceColor(incidence, 0.5);
+    });
+    datasets.push({
+      data: cases,
+      order: 1,
+      label: 'Neuinfektionen',
+      type: 'bar',
+      backgroundColor: casesColors
+    });
+  }
 
   new Chart(canvas.id, {
     type: 'bar',
@@ -577,25 +605,7 @@ function drawBarChart(place, filteredData, sectionId) {
     },
     data: {
       labels: dateLabels,
-      datasets: [{
-        data: cases,
-        order: 1,
-        label: 'Neuinfektionen',
-        type: 'bar',
-        backgroundColor: casesColors
-      }, {
-        data: averages,
-        order: 0,
-        label: '7 Tage Ø',
-        type: 'line',
-        pointRadius: 5,
-        pointBorderWidth: 0,
-        pointBorderColor: 'transparent',
-        pointBackgroundColor: averageColors,
-        spanGaps: true,
-        borderColor: inDarkMode() ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
-        backgroundColor: 'transparent'
-      }]
+      datasets: datasets
     }
   });
 }
@@ -924,8 +934,8 @@ function getRiskObject(casesLastWeek, casesThisWeek, population) {
     if (incidence_14day >= 30) {
       changePercent = Math.round(100 * ((casesThisWeek / casesLastWeek) - 1));
       if (isFinite(changePercent)) changeText = (changePercent > 0 ? '+' : '') + changePercent + '%';
-      if (changePercent >= 10) changeSymbol = '&#8599;&#xFE0E; '; // at least 10% increase
-      else if (changePercent <= -10) changeSymbol = '&#8600;&#xFE0E; '; // at least 10% decrease
+      if (changePercent >= 19) changeSymbol = '&#8599;&#xFE0E; '; // at least 19% increase
+      else if (changePercent <= -15) changeSymbol = '&#8600;&#xFE0E; '; // at least 15% decrease
       tendencyClass = getTendencyClass(changePercent);
     }
 
@@ -955,14 +965,14 @@ function getRiskObject(casesLastWeek, casesThisWeek, population) {
  * @param {string}
  */
 function getTendencyLabel(change) {
-  if (change >= 100) return 'unkontrolliert steigend';
-  else if (change >= 50) return 'sehr schnell steigend';
-  else if (change >= 25) return 'schnell steigend';
-  else if (change >= 10) return 'steigend';
-  else if (change <= -50) return 'sehr schnell sinkend';
-  else if (change <= -25) return 'schnell sinkend';
-  else if (change <= -10) return 'sinkend';
-  else return 'gleichbleibend';
+  if (change >= 400) return 'Vervierfachung in 1 Woche';
+  else if (change >= 100) return 'Verdoppelung in 1 Woche';
+  else if (change >= 42) return 'Verdoppelung in 2 Wochen';
+  else if (change >= 19) return 'Verdoppelung in 4 Wochen';
+  else if (change <= -50) return 'Halbierung in 1 Woche';
+  else if (change <= -30) return 'Halbierung in 2 Wochen';
+  else if (change <= -15) return 'Halbierung in 4 Wochen';
+  else return 'ungefähr gleichbleibend';
 }
 
 /**
@@ -972,13 +982,13 @@ function getTendencyLabel(change) {
  * @param {string}
  */
 function getTendencyClass(change) {
-  if (change >= 100) return 'increasing-fastest';
-  else if (change >= 50) return 'increasing-faster';
-  else if (change >= 25) return 'increasing-fast';
-  else if (change >= 10) return 'increasing';
+  if (change >= 400) return 'increasing-fastest';
+  else if (change >= 100) return 'increasing-faster';
+  else if (change >= 42) return 'increasing-fast';
+  else if (change >= 19) return 'increasing';
   else if (change <= -50) return 'decreasing-faster';
-  else if (change <= -25) return 'decreasing-fast';
-  else if (change <= -10) return 'decreasing';
+  else if (change <= -30) return 'decreasing-fast';
+  else if (change <= -15) return 'decreasing';
   else return 'stable';
 }
 
