@@ -562,16 +562,6 @@ button {
 	text-align: center !important;
 }
 
-.figure .figure__row-header {
-	text-align: right;
-}
-
-@media (max-width: 750px) {
-	.figure .figure__row-header {
-		display: none;
-	}
-}
-
 .figure .cell {
 	text-align: center;
 	border: 0;

@@ -351,12 +351,12 @@ function drawCantonTable() {
     tr.appendChild(td);
     var risk = getRiskObject(cantonData.OldConfCases_7days, cantonData.NewConfCases_7days, cantonData.Population);
     td = document.createElement("td");
-    td.className = 'cell cell--' + risk.className_thisWeek;
-    td.innerHTML = formatNumber(cantonData.NewConfCases_7days) + '<br><strong>' + formatNumber(risk.incidence_thisWeek) + '</strong>';
-    tr.appendChild(td);
-    td = document.createElement("td");
     td.className = 'cell cell--' + risk.className;
     td.innerHTML = formatNumber(cantonData.OldConfCases_7days + cantonData.NewConfCases_7days) + '<br><strong>' + formatNumber(risk.incidence) + '</strong>';
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.className = 'cell cell--' + risk.className_thisWeek;
+    td.innerHTML = formatNumber(cantonData.NewConfCases_7days) + '<br><strong>' + formatNumber(risk.incidence_thisWeek) + '</strong>';
     tr.appendChild(td);
     td = document.createElement("td");
     td.className = 'cell cell--' + risk.tendency;
@@ -495,20 +495,15 @@ function drawBarChart(place, filteredData, sectionId) {
 
   card.className = 'figure figure--' + risk.className_thisWeek;
   card.innerHTML = '<thead><tr>'
-    + '<th class="figure__row-header" rowspan="2" scope="col">Zeitraum</th>'
     + '<th class="figure__column-header" colspan="2" scope="col">Neuinfektionen / Inzidenz</th>'
     + '<th class="figure__column-header" rowspan="2" scope="col">Veränderung zur Vorwoche</th>'
     + '</tr><tr>'
-    + '<th class="figure__column-header cell--' + risk.className_lastWeek + '" scope="col">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 14].Date)) + '</th>'
-    + '<th class="figure__column-header" scope="col">Woche ab ' + formatDate(new Date(filteredData[filteredData.length - 7].Date)) + '</th>'
+    + '<th class="figure__column-header cell--' + risk.className + '" scope="col">14 Tage ab ' + formatDate(new Date(filteredData[filteredData.length - 14].Date)) + '</th>'
+    + '<th class="figure__column-header" scope="col">7 Tage ab ' + formatDate(new Date(filteredData[filteredData.length - 7].Date)) + '</th>'
     + '</tr></thead><tbody><tr>'
-    + '<th class="figure__row-header" scope="row">7 Tage</th>'
-    + '<td class="cell cell--' + risk.className_lastWeek + '">' + formatNumber(casesLastWeek) + '<br/><strong>' + formatNumber(risk.incidence_lastWeek) + '</strong></td>'
+    + '<td class="cell cell--' + risk.className + '">' + formatNumber(casesLastWeek + casesThisWeek) + '<br/><strong>' + formatNumber(risk.incidence) + '</strong></td>'
     + '<td class="cell">' + formatNumber(casesThisWeek) + '<br/><strong class="figure__number">' + formatNumber(risk.incidence_thisWeek) + '</strong><br/>' + riskLabel + '</td>'
-    + '<td rowspan="2"  class="cell cell--' + risk.tendency + '"><strong>' + risk.symbol + risk.changeString + '</strong><br/> ' + tendencyLabel + '</td>'
-    + '</tr><tr>'
-    + '<th class="figure__row-header" scope="row">14 Tage</th>'
-    + '<td colspan="2" class="cell cell--' + risk.className + '"">' + formatNumber(casesLastWeek + casesThisWeek) + '<br/><strong>' + formatNumber(risk.incidence) + '</strong></td>'
+    + '<td class="cell cell--' + risk.tendency + '"><strong>' + risk.symbol + risk.changeString + '</strong><br/> ' + tendencyLabel + '</td>'
     + '</tr></tbody>';
   article.appendChild(card);
   var div = document.createElement("div");
@@ -898,8 +893,8 @@ function drawPLZTable() {
     } else {
       tr.innerHTML = '<td class="cell cell--id">' + plz + '</td>'
         + '<td class="cell cell--name">' + name + '</td>'
-        + '<td class="cell cell--' + (risk ? risk.className_thisWeek : 'unknown') + '">' + singlePLZ.NewConfCases_7days + '<br><strong>' + formatNumber(risk.incidence_thisWeek) + '</strong></td>'
         + '<td class="cell cell--' + (risk ? risk.className : 'unknown') + '">' + formatNumber(newConfCases_14days - 2) + '-' + formatNumber(newConfCases_14days + 2) + '<br/><strong>' + formatNumber(risk.incidence) + '</strong></td>'
+        + '<td class="cell cell--' + (risk ? risk.className_thisWeek : 'unknown') + '">' + singlePLZ.NewConfCases_7days + '<br><strong>' + formatNumber(risk.incidence_thisWeek) + '</strong></td>'
         + '<td class="cell cell--' + (risk ? risk.tendency : 'unknown') + '"><strong>' + risk.changeString + '</strong></td>';
     }
     tr.addEventListener('click', function(e) {
