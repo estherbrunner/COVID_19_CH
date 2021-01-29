@@ -156,12 +156,13 @@ function processData() {
   document.getElementById("loaded").style.display = 'block';
   getDataPerDay();
   drawCantonTable();
-  drawBarChart('CH', dataPerDay.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'index');
+  drawBarChart('CH', dataPerDay.slice(dataPerDay.length - chartPeriodLength - dateOffset - 3, dataPerDay.length - dateOffset - 3), 'index'); // exclude last 3 days because of insufficient data
   var canton = 'ZH';
   var filteredData = dataPerDay.map(function(d) {
     return d.canton.filter(function(dd) { return dd.Canton === canton; })[0];
   });
-  drawBarChart(canton, filteredData.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'overview_zh');
+  var dataForTodayUnavailable = (!dataPerDay[dataPerDay.length - 1].canton.length);
+  drawBarChart(canton, filteredData.slice(dataPerDay.length - chartPeriodLength - dateOffset - dataForTodayUnavailable, dataPerDay.length - dateOffset - dataForTodayUnavailable), 'overview_zh');
   // getDistricts();
   getZIP();
   addEventListeners();
@@ -261,7 +262,7 @@ function getZIP() {
 }
 
 function getDataPerDay() {
-  var mostRecent = new Date(casesData[casesData.length - 4].datum); // exclude last 3 days because insufficent data
+  var mostRecent = new Date(casesData[casesData.length - 1].datum);
   var j = Math.floor((mostRecent - new Date('2020-06-01')) / (1000 * 60 * 60 * 24));
   for (j; j >= 0; j--) {
     var dateString = getDateString(mostRecent, -j);
@@ -316,16 +317,16 @@ function getZIPDataPerDay(zipdata) {
 }
 
 function drawCantonTable() {
-  var dataPerCanton = dataPerDay[dataPerDay.length - dateOffset - 1].bag.map(function(value, i) {
+  var dataPerCanton = dataPerDay[dataPerDay.length - dateOffset - 4].bag.map(function(value, i) { // exclude last 3 days because of insufficent data
     return {
       'Canton': value.Canton,
       'NewConfCases_7days': value.NewConfCases_7days,
-      'OldConfCases_7days': dataPerDay[dataPerDay.length - dateOffset - 8].bag[i].NewConfCases_7days,
+      'OldConfCases_7days': dataPerDay[dataPerDay.length - dateOffset - 11].bag[i].NewConfCases_7days,
       'Population': value.Population,
       'Date': value.Date,
     }
   });
-  var lastDate = dataPerDay[dataPerDay.length - dateOffset - 1].Date;
+  var lastDate = dataPerDay[dataPerDay.length - dateOffset - 4].Date;
   var endDay = new Date(lastDate);
   var startDay = new Date(lastDate);
   startDay.setDate(startDay.getDate() - 13);
@@ -819,7 +820,7 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
           var filteredData = dataPerDay.map(function(d) {
             return d.bag.filter(function(dd) { return dd.Canton === id; })[0];
           });
-          drawBarChart(id, filteredData.slice(dataPerDay.length - chartPeriodLength - dateOffset, dataPerDay.length - dateOffset), 'cantons');
+          drawBarChart(id, filteredData.slice(dataPerDay.length - chartPeriodLength - dateOffset - 3, dataPerDay.length - dateOffset - 3), 'cantons'); // exclude last 3 days because of insufficient data
         } else if (container === '#map_zipcodes') {
           var filteredData = zipDataPerDay.map(function(d) {
             return d.data.filter(function(dd) { if (dd.PLZ == id) return dd; })[0];
@@ -851,7 +852,7 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
 
 function drawPLZTable() {
   var tbody = document.getElementById("plzbody");
-  var lastDate = zipDataPerDay[zipDataPerDay.length - dateOffset - 3].Date;
+  var lastDate = zipDataPerDay[zipDataPerDay.length - dateOffset - 1].Date;
   var endDay = new Date(lastDate);
   var startDay = new Date(lastDate);
   startDay.setDate(startDay.getDate() - 13);
@@ -859,11 +860,11 @@ function drawPLZTable() {
   period.innerHTML = formatDate(startDay) + ' – ' + formatDate(endDay);
   var updated = document.getElementById('zh_source__updated');
   updated.innerHTML = formatDate(new Date(zipDataPerDay[zipDataPerDay.length - 1].Date));
-  var filteredPLZData = zipDataPerDay[zipDataPerDay.length - dateOffset - 3].data;
+  var filteredPLZData = zipDataPerDay[zipDataPerDay.length - dateOffset - 1].data;
   for (var i = 0; i < filteredPLZData.length; i++) {
     var singlePLZ = filteredPLZData[i];
     var plz = "" + singlePLZ.PLZ;
-    var lastWeek = zipDataPerDay[zipDataPerDay.length - dateOffset - 10].data.filter(function(d) { if (d.PLZ == plz) return d; })[0];
+    var lastWeek = zipDataPerDay[zipDataPerDay.length - dateOffset - 8].data.filter(function(d) { if (d.PLZ == plz) return d; })[0];
     singlePLZ.OldConfCases_7days = lastWeek.NewConfCases_7days;
     var name = plzNames[plz];
     if (name == undefined) name = '';
@@ -926,7 +927,7 @@ function getRiskObject(casesLastWeek, casesThisWeek, population) {
   var incidence_7dayOld = Math.round(incidenceSize * casesLastWeek / population);
   var incidence_7day = Math.round(incidenceSize * casesThisWeek / population);
 
-  if (newConfCases_14days > 2 || population >= 5000) {
+  if (casesThisWeek > 1 || population >= 5000) {
     if (incidence_14day >= 30) {
       changePercent = Math.round(100 * ((casesThisWeek / casesLastWeek) - 1));
       if (isFinite(changePercent)) changeText = (changePercent > 0 ? '+' : '') + changePercent + '%';
