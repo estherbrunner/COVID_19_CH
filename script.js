@@ -445,7 +445,7 @@ function getTotalConfCases(canton, dateString, searchPast) {
  * @param {string} sectionId - section to render chart to
  */
 function drawBarChart(place, filteredData, sectionId) {
-  if (!filteredData) {
+  if (!filteredData || !filteredData[0]) {
     return; // fail gracefully
   }
   var section = document.getElementById(sectionId);
@@ -474,7 +474,7 @@ function drawBarChart(place, filteredData, sectionId) {
       document.getElementById(article.id).remove();
     }
     var h3 = document.createElement('h3');
-    h3.innerHTML = place + ' ' + plzNames[place].replace('<br/>', ' ');
+    h3.innerHTML = place + ' ' + plzNames[place].replaceAll('<br/>', ' ');
     article.appendChild(h3);
     var p = document.createElement('p');
     p.innerHTML = formatNumber(pop) + ' Einwohner\'innen';
@@ -535,7 +535,11 @@ function drawBarChart(place, filteredData, sectionId) {
     if (d.NewConfCases_7dayAverage) {
       incidence = 7 * 100000 * d.NewConfCases_7dayAverage / pop;
     } else if (d.NewConfCases_7days && (sectionId === 'zipcodes')) {
-      if (d.NewConfCases_7days === '0-3' && pop < 5000) return '#808080'; // gray - cannot calculate incidence
+      if (d.NewConfCases_7days === '0-3') {
+        if (pop < 2500) return '#8c8c8c'; // gray - cannot calculate incidence
+        else if (pop < 5000) return '#ae997a';
+        else if (pop < 10000) return '#b3b251';
+      }
       incidence = 100000 * parsePrevalenceRange(d.NewConfCases_7days) / pop;
     }
     return getIncidenceColor(incidence, 1);
@@ -811,11 +815,11 @@ function drawMap(container, topoData, projection, idAttribute, callback) {
         var selectedRowClass = 'row--selected';
         if (selectedArea) {
           document.getElementById('area_' + selectedArea).classList.remove(selectedAreaClass);
-          document.getElementById('row_' + selectedArea).classList.remove(selectedRowClass);
+          if (document.getElementById('row_' + selectedArea)) document.getElementById('row_' + selectedArea).classList.remove(selectedRowClass);
         }
         selectedArea = id;
         document.getElementById('area_' + id).classList.add(selectedAreaClass);
-        document.getElementById('row_' + id).classList.add(selectedRowClass);
+        if (document.getElementById('row_' + id)) document.getElementById('row_' + id).classList.add(selectedRowClass);
         if (container === '#map_cantons') {
           var filteredData = dataPerDay.map(function(d) {
             return d.bag.filter(function(dd) { return dd.Canton === id; })[0];
@@ -927,7 +931,7 @@ function getRiskObject(casesLastWeek, casesThisWeek, population) {
   var incidence_7dayOld = Math.round(incidenceSize * casesLastWeek / population);
   var incidence_7day = Math.round(incidenceSize * casesThisWeek / population);
 
-  if (casesThisWeek > 1 || population >= 5000) {
+  if (casesThisWeek > 1 || population >= 2500) {
     if (incidence_14day >= 30) {
       changePercent = Math.round(100 * ((casesThisWeek / casesLastWeek) - 1));
       if (isFinite(changePercent)) changeText = (changePercent > 0 ? '+' : '') + changePercent + '%';
@@ -936,9 +940,9 @@ function getRiskObject(casesLastWeek, casesThisWeek, population) {
       tendencyClass = getTendencyClass(changePercent);
     }
 
-    riskClass = getRiskClass(incidence_14day / 2);
-    riskClass_lastWeek = getRiskClass(incidence_7dayOld);
-    riskClass_thisWeek = getRiskClass(incidence_7day);
+    riskClass = getRiskClass(incidence_14day / 2, population);
+    riskClass_lastWeek = getRiskClass(incidence_7dayOld, population);
+    riskClass_thisWeek = getRiskClass(incidence_7day, population);
   }
 
   return {
@@ -1010,16 +1014,20 @@ function getRiskLabel(incidence) {
  * Get CSS class for risk level
  * 
  * @param {number} incidence - 7 day incidence
+ * @param {number} population - population size
  * @returns {string} - classname 
  */
-function getRiskClass(incidence) {
+function getRiskClass(incidence, population) {
+  var smallpop = false;
+  if (population < 5000 && incidence < 60) smallpop = true;
+  else if (population < 10000 && incidence < 30) smallpop = true;
   if (incidence >= 960) return 'terrible';
   else if (incidence >= 480) return 'extreme';
   else if (incidence >= 240) return 'highest';
   else if (incidence >= 120) return 'higher';
   else if (incidence >= 60) return 'high';
-  else if (incidence >= 30) return 'medium';
-  else if (incidence >= 15) return 'moderate';
+  else if (incidence >= 30) return 'medium' + (smallpop ? '-uncertain' : '');
+  else if (incidence >= 15) return 'moderate' + (smallpop ? '-uncertain' : '');
   else return 'low';
 }
 
@@ -1030,7 +1038,7 @@ function getRiskClass(incidence) {
  * @returns {string}
  */
 function formatNumber(num) {
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  return num.toString().replaceAll(/\B(?=(\d{3})+(?!\d))/g, "'");
 }
 
 /**

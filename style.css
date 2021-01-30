@@ -105,6 +105,11 @@ main p {
 	margin: 1rem 0;
 	font-size: 1rem;
 }
+
+main h3 + p {
+	margin-top: 0;
+}
+
 main li {
 	font-size: 1rem;
 	margin-bottom: 0.25rem;
@@ -212,7 +217,7 @@ table tr th:nth-child(1) {
  */
 .area {
 	stroke: var(--color-background);
-	fill: grey;
+	fill: #8c8c8c;
 	cursor: pointer;
 }
 
@@ -222,9 +227,11 @@ table tr th:nth-child(1) {
 .area--risk-higher { fill: var(--color-risk-higher); }
 .area--risk-high { fill: var(--color-risk-high); }
 .area--risk-medium { fill: var(--color-risk-medium); }
+.area--risk-medium-uncertain { fill: #ae997a; }
 .area--risk-moderate { fill: var(--color-risk-moderate); }
+.area--risk-moderate-uncertain { fill: #b3b251; }
 .area--risk-low { fill: var(--color-risk-low); }
-.area--risk-unknown { fill: grey; }
+.area--risk-unknown { fill: #8c8c8c; }
 
 .area--selected.area--risk-terrible { fill: var(--color-risk-terrible--dark); }
 .area--selected.area--risk-extreme { fill: var(--color-risk-extreme--dark); }
@@ -232,9 +239,11 @@ table tr th:nth-child(1) {
 .area--selected.area--risk-higher { fill: var(--color-risk-higher--dark); }
 .area--selected.area--risk-high { fill: var(--color-risk-high--dark); }
 .area--selected.area--risk-medium { fill: var(--color-risk-medium--dark); }
+.area--selected.area--risk-medium-uncertain { fill: #756751; }
 .area--selected.area--risk-moderate { fill: var(--color-risk-moderate--dark); }
+.area--selected.area--risk-moderate-uncertain { fill: #7e7d3d; }
 .area--selected.area--risk-low { fill: var(--color-risk-low--dark); }
-.area--selected.area--risk-unknown { fill: #4d4d4d; }
+.area--selected.area--risk-unknown { fill: #595959; }
 
 /**
  * Row
@@ -574,9 +583,10 @@ button {
 .figure--highest { border-color: var(--color-risk-highest); background-color: var(--color-risk-highest--lighter); color: var(--color-risk-highest--darker); }
 .figure--higher { border-color: var(--color-risk-higher); background-color: var(--color-risk-higher--lighter); color: var(--color-risk-higher--darker); }
 .figure--high { border-color: var(--color-risk-high); background-color: var(--color-risk-high--lighter); color: var(--color-risk-high--darker); }
-.figure--medium { border-color: var(--color-risk-medium); background-color: var(--color-risk-medium--lighter); color: var(--color-risk-medium--darker); }
-.figure--moderate { border-color: var(--color-risk-moderate); background-color: var(--color-risk-moderate--lighter); color: var(--color-risk-moderate--darker); }
+.figure--medium, .figure--medium-uncertain { border-color: var(--color-risk-medium); background-color: var(--color-risk-medium--lighter); color: var(--color-risk-medium--darker); }
+.figure--moderate, .figure--moderate-uncertain { border-color: var(--color-risk-moderate); background-color: var(--color-risk-moderate--lighter); color: var(--color-risk-moderate--darker); }
 .figure--low { border-color: var(--color-risk-low); background-color: var(--color-risk-low--lighter); color: var(--color-risk-low--darker); }
+.figure--unknown { border-color: #8c8c8c; background-color: #e9e9e9; color: #1f1f1f; }
 
 @media (prefers-color-scheme: dark) {
 	.figure--terrible { background-color: var(--color-risk-terrible--darker); color: var(--color-risk-terrible--lighter); }
@@ -584,9 +594,10 @@ button {
 	.figure--highest { background-color: var(--color-risk-highest--darker); color: var(--color-risk-highest--lighter); }
 	.figure--higher { background-color: var(--color-risk-higher--darker); color: var(--color-risk-higher--lighter); }
 	.figure--high { background-color: var(--color-risk-high--darker); color: var(--color-risk-high--lighter); }
-	.figure--medium { background-color: var(--color-risk-medium--darker); color: var(--color-risk-medium--lighter); }
-	.figure--moderate { background-color: var(--color-risk-moderate--darker); color: var(--color-risk-moderate--lighter); }
+	.figure--medium, .figure--medium-uncertain { background-color: var(--color-risk-medium--darker); color: var(--color-risk-medium--lighter); }
+	.figure--moderate, .figure--moderate-uncertain { background-color: var(--color-risk-moderate--darker); color: var(--color-risk-moderate--lighter); }
 	.figure--low { background-color: var(--color-risk-low--darker); color: var(--color-risk-low--lighter); }
+	.figure--unknown { background-color: #1f1f1f; color: #e9e9e9; }
 }
 
 .figure .cell--terrible { background-color: var(--color-risk-terrible--lighter); color: var(--color-risk-terrible--darker); }
@@ -594,9 +605,10 @@ button {
 .figure .cell--highest { background-color: var(--color-risk-highest--lighter); color: var(--color-risk-highest--darker); }
 .figure .cell--higher { background-color: var(--color-risk-higher--lighter); color: var(--color-risk-higher--darker); }
 .figure .cell--high { background-color: var(--color-risk-high--lighter); color: var(--color-risk-high--darker); }
-.figure .cell--medium { background-color: var(--color-risk-medium--lighter); color: var(--color-risk-medium--darker); }
-.figure .cell--moderate { background-color: var(--color-risk-moderate--lighter); color: var(--color-risk-moderate--darker); }
+.figure .cell--medium, .figure .cell--medium-uncertain { background-color: var(--color-risk-medium--lighter); color: var(--color-risk-medium--darker); }
+.figure .cell--moderate, .figure .cell--moderate-uncertain { background-color: var(--color-risk-moderate--lighter); color: var(--color-risk-moderate--darker); }
 .figure .cell--low { background-color: var(--color-risk-low--lighter); color: var(--color-risk-low--darker); }
+.figure .cell--unknown { background-color: #e9e9e9; color: #1f1f1f; }
 
 @media (prefers-color-scheme: dark) {
 	.figure .cell--terrible { background-color: var(--color-risk-terrible--darker); color: var(--color-risk-terrible--lighter); }
@@ -604,9 +616,10 @@ button {
 	.figure .cell--highest { background-color: var(--color-risk-highest--darker); color: var(--color-risk-highest--lighter); }
 	.figure .cell--higher { background-color: var(--color-risk-higher--darker); color: var(--color-risk-higher--lighter); }
 	.figure .cell--high { background-color: var(--color-risk-high--darker); color: var(--color-risk-high--lighter); }
-	.figure .cell--medium { background-color: var(--color-risk-medium--darker); color: var(--color-risk-medium--lighter); }
-	.figure .cell--moderate { background-color: var(--color-risk-moderate--darker); color: var(--color-risk-moderate--lighter); }
+	.figure .cell--medium, .figure .cell--medium-uncertain { background-color: var(--color-risk-medium--darker); color: var(--color-risk-medium--lighter); }
+	.figure .cell--moderate, .figure .cell--moderate-uncertain { background-color: var(--color-risk-moderate--darker); color: var(--color-risk-moderate--lighter); }
 	.figure .cell--low { background-color: var(--color-risk-low--darker); color: var(--color-risk-low--lighter); }
+	.figure .cell--unknown { background-color: #1f1f1f; color: #e9e9e9; }
 }
 
 .cell strong {
@@ -622,9 +635,10 @@ button {
 .cell--highest strong, .figure--highest .figure__number { background-color: var(--color-risk-highest); }
 .cell--higher strong, .figure--higher .figure__number { background-color: var(--color-risk-higher); }
 .cell--high strong, .figure--high .figure__number { background-color: var(--color-risk-high); color: black; }
-.cell--medium strong, .figure--medium .figure__number { background-color: var(--color-risk-medium); color: black; }
-.cell--moderate strong, .figure--moderate .figure__number { background-color: var(--color-risk-moderate); color: black; }
+.cell--medium strong, .figure--medium .figure__number, .cell--medium-uncertain strong, .figure--medium-uncertain .figure__number { background-color: var(--color-risk-medium); color: black; }
+.cell--moderate strong, .figure--moderate .figure__number, .cell--moderate-uncertain strong, .figure--moderate-uncertain .figure__number { background-color: var(--color-risk-moderate); color: black; }
 .cell--low strong, .figure--low .figure__number { background-color: var(--color-risk-low); color: black; }
+.cell--unknown strong, .figure--unknown .figure__number { background-color: #8c8c8c; color: black; }
 
 .cell--increasing-fastest strong { background-color: var(--color-increasing-fastest); }
 .cell--increasing-faster strong { background-color: var(--color-increasing-faster); color: black; }
